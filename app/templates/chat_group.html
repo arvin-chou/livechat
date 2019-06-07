@@ -1,0 +1,41 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+
+<div class="well well-sm">
+    {% block list_header scoped %}
+        {{ lib.render_list_header(can_add, page, page_size, count, filters, actions, modelview_name) }}
+    {% endblock %}
+</div>
+
+    {% block begin_content scoped %}
+      <ul class="list">
+    {% endblock %}
+
+    {% block begin_loop_values %}
+        {% for item in value_columns %}
+           {% for value in include_columns %}
+           {% endfor %}
+           {% set value = "name" %}
+              <li class="clearfix" data-id="{{ item['id'] }}" data-line_id="{{ item['line_id'] }}">
+                <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg" alt="avatar" />
+                <div class="about">
+                  <div class="name">
+                    {% set formatter = formatters_columns.get(value) %}
+                    {% if formatter %}
+                        {{ formatter(item[value]) }}
+                    {% else %}
+                        {{ item[value] }}
+                    {% endif %}
+                  </div>
+                  <div class="status">
+                    <!--<i class="fa fa-circle online"></i> online-->
+                  </div>
+                </div>
+              </li>
+        {% endfor %}
+    {% endblock %}
+
+    {% block end_content scoped %}
+        </ul>
+    {% endblock %}
+
+

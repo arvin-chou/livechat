@@ -1,0 +1,22 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+{% block content %}
+
+{% block show_form %}
+    {{ widgets.get('show')()|safe }}
+<script type="text/javascript">
+  var $img = $('img');
+  var old_src = $img.attr('src');
+  var reload = function() {
+    $img.attr('src', old_src + "?" + new Date().getTime());
+    setTimeout(reload, 6000)
+  };
+  setTimeout(reload, 6000)
+</script>
+{% endblock show_form %}
+
+{% endblock %}
+
+{% block add_tail_js %}
+<script src="{{url_for('appbuilder.static',filename='js/ab_keep_tab.js')}}"></script>
+{% endblock %}

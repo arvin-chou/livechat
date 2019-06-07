@@ -1,0 +1,18 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+{% include 'appbuilder/general/confirm.html' %}
+{% include 'appbuilder/general/alert.html' %}
+<div class="row">
+  {% for item in include_columns %}
+    {% set formatter = formatters_columns.get(item) %}
+    {% set v = value_columns[loop.index-1]%}
+    <div class="text-center">
+      {{formatter(v) if formatter else v}}
+    </div>
+  {% endfor %}
+</div>
+
+
+<div class="well well-sm">
+  {{ lib.render_action_links(actions, pk, modelview_name) }}
+  {{ lib.lnk_back() }}
+</div>
