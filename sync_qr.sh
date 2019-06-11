@@ -18,9 +18,21 @@ sync_db()
   file=$2
   export TOKEN=`curl -XPOST ${URL}/api/v1/security/login -d \
     '{"username": "'${NAME}'", "password": "'${PW}'", "provider": "db"}' \
-    -H "Content-Type: application/json" |\
-    python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])"`
-  #echo $TOKEN
+    -H "Content-Type: application/json"`
+  if [ "$(uname)" == "Darwin" ]; then
+      # Do something under Mac OS X platform        
+      export TOKEN=`echo ${TOKEN} | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])"`
+  elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+      # Do something under GNU/Linux platform
+      echo "under linux"
+  elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
+      # Do something under 32 bits Windows NT platform
+      export TOKEN=`echo ${TOKEN} | perl -pe 's/"access_token"://; s/^"//; s/",$//; s/{\s*"//; s/"\s*}//'`
+  elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW64_NT" ]; then
+      # Do something under 64 bits Windows NT platform
+      echo "mingw64"
+  fi
+  echo $TOKEN
   curl --insecure -X POST -v \
     -F "name=${title}" \
     -F "description=${title}" \
@@ -36,7 +48,13 @@ for fullfile in ${LINE_FOLDER}/*png; do
   #fi
 
   tmp="tmp"
-  cat "${fullfile}" | base64 -D > ${tmp}
+  if [ "$(uname)" == "Darwin" ]; then
+      # Do something under Mac OS X platform        
+      cat "${fullfile}" | base64 -D > ${tmp}
+  elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
+      # Do something under 32 bits Windows NT platform
+      cat "${fullfile}" | base64 -d > ${tmp}
+  fi
   mv "${tmp}" "${fullfile}"
 
   filename=$(basename -- "$fullfile")
