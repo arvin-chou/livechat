@@ -21,14 +21,15 @@ class ProjectFilesModelView(ModelView):
     label_columns = {"file_name": "File Name", "download": "Download"}
     add_columns = ["file", "description", "project"]
     edit_columns = ["file", "description", "project"]
-    list_columns = ["file_name", "download"]
-    show_columns = ["file_name", "download"]
+    list_columns = ["file_name", "qrcode", "download"]
+    show_columns = ["file_name", "qrcode", "download"]
 
 class ProjectFile(ModelView):
     datamodel = SQLAInterface(ProjectFiles)
 
     label_columns = {"download": "Download"}
-    show_columns = ["download"]
+    #show_columns = ["download"]
+    show_columns = ["qrcode"]
 
     @expose("/show/<pk>")
     @expose("/show/")

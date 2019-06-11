@@ -30,10 +30,6 @@ def del_column(engine, table_name, column):
     column_type = column.type.compile(engine.dialect)
     engine.execute('ALTER TABLE %s DROP COLUMN %s ' % (table_name, column_name))
 
-import logging
-logging.basicConfig()
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-
 
 
 #column = Column('is_used', Boolean, nullable=False, default=0)
@@ -41,14 +37,17 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 #column= Column('user_id', Integer, ForeignKey("RegisterUser.id"))
 #column= Column('line_id', String)
 #column= Column('msg', LONGTEXT)
-#column= Column('msg', String)
+#column= Column('login_qrcode_base64', String)
 #column= Column('t', String)
 #del_column(engine, 'project', column)
 #add_column(engine, 'contact_group', column)
 #add_column(engine, 'contact', column)
+#add_column(engine, 'project_files', column)
 #from app.m.contact import Contact, ContactGroup
 #Contact.__table__.drop(engine)
 #ContactGroup.__table__.drop(engine)
+#from app.m.quickfiles import Project, ProjectFiles
+#ProjectFiles.__table__.drop(engine)
 
 
 
@@ -60,7 +59,7 @@ CSRF_ENABLED = True
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Line"
+APP_NAME = "Canary"
 
 # Uncomment to setup Setup an App icon
 # APP_ICON = "static/img/logo.jpg"

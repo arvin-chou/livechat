@@ -19,6 +19,7 @@ from flask_jwt_extended import (
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import protect
 from flask_appbuilder import ModelView, ModelRestApi
+from flask_appbuilder.models.sqla.filters import FilterEqual 
 from flask_appbuilder.api import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.filemanager import ImageManager
@@ -90,45 +91,87 @@ class ProjectModelApi(ModelRestApi):
     @protect()
     def add(self):
         ## post with json
-        #if not request.is_json:
-        #    return self.response_400(message="Request payload is not JSON")
-        #name = request.json.get('name', None)
-        name = request.form.get('name')
+        if request.is_json:
+            name = request.json.get('name', None)
+            login_qrcode_base64 = request.json.get('login_qrcode_base64', None)
+            description = request.json.get('description', None)
 
-        if not name:
-            return self.response_400(message="Missing required parameter")
+            if name is None or login_qrcode_base64 is None:
+                return self.response_400(message="Request payload is not JSON")
 
-        if 'file' not in request.files:
-            flash('No file part')
-            return self.response_400(message="Missing file parameter")
-        file = request.files['file']
+            s = self.datamodel.session
+            datamodel = SQLAInterface(Project)
+            datamodel.session = s
 
-        if file.filename == '':
-            return self.response_400(message="no file select")
-        #filename = secure_filename(file.filename)
-        #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            filters = datamodel.get_filters()
+            filters.add_filter('name', FilterEqual, name)
+            count, item = datamodel.query(filters=filters, page_size=1)
+            if count:
+                item = item[0]
+                pid = item.id
+                datamodel = SQLAInterface(ProjectFiles)
+                datamodel.session = s
+                filters = datamodel.get_filters()
+                filters.add_filter('project_id', FilterEqual, pid)
+                count, child = datamodel.query(filters=filters, page_size=1)
+                child = child[0]
 
-        s = self.datamodel.session
-        datamodel = SQLAInterface(Project)
-        datamodel.session = s
-        item = datamodel.obj()
-        item.name = name
-        item.created_by_fk = 1
-        item.changed_by_fk = 1
+            else:
+                item = datamodel.obj()
+                item.name = name
+                item.created_by_fk = 1
+                item.changed_by_fk = 1
 
-        datamodel.add(item)
-        pid = item.id
+                datamodel.add(item)
 
-        im = ImageManager()
-        filename = im.save_file(file, im.generate_name(file, file))
+                pid = item.id
 
-        datamodel = SQLAInterface(ProjectFiles)
-        datamodel.session = s
-        child = datamodel.obj()
-        child.file = filename
-        child.project = item
-        child.description = request.form.get('description')
-        datamodel.add(child)
+                datamodel = SQLAInterface(ProjectFiles)
+                datamodel.session = s
+                child = datamodel.obj()
+
+            child.project = item
+            child.description = description
+            child.login_qrcode_base64 = login_qrcode_base64
+            datamodel.add(child)
+
+        else:
+            name = request.form.get('name')
+
+            if not name:
+                return self.response_400(message="Missing required parameter")
+
+            if 'file' not in request.files:
+                flash('No file part')
+                return self.response_400(message="Missing file parameter")
+            file = request.files['file']
+
+            if file.filename == '':
+                return self.response_400(message="no file select")
+            #filename = secure_filename(file.filename)
+            #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+            s = self.datamodel.session
+            datamodel = SQLAInterface(Project)
+            datamodel.session = s
+            item = datamodel.obj()
+            item.name = name
+            item.created_by_fk = 1
+            item.changed_by_fk = 1
+
+            datamodel.add(item)
+            pid = item.id
+
+            im = ImageManager()
+            filename = im.save_file(file, im.generate_name(file, file))
+
+            datamodel = SQLAInterface(ProjectFiles)
+            datamodel.session = s
+            child = datamodel.obj()
+            child.file = filename
+            child.project = item
+            child.description = request.form.get('description')
+            datamodel.add(child)
         #datamodel._add_files(request, item)
         #log.warning("XX", item.id, "VV")
 

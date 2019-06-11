@@ -21,6 +21,9 @@ class Project(AuditMixin, Model):
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     user = relationship("User", foreign_keys='Project.user_id')
     name = Column(String(150), unique=True, nullable=False)
+    #project_id = Column(Integer, ForeignKey('project_files.id'))
+    #projectfiles = relationship('ProjectFiles', foreign_keys='Project.id', back_populates='project')
+    #projectfiles = relationship('ProjectFiles', foreign_keys='Project.id')
 
 
 class ProjectFiles(Model):
@@ -28,10 +31,14 @@ class ProjectFiles(Model):
     id = Column(Integer, primary_key=True, autoincrement = True)
     project_id = Column(Integer, ForeignKey("project.id"))
     project = relationship("Project", backref=backref("ProjectFiles", cascade="all, delete-orphan"))
-    file = Column(FileColumn, nullable=False)
+    file = Column(FileColumn, nullable=True)
     description = Column(String(150))
+    login_qrcode_base64 = Column(String)
 
     def download(self):
+        if self.file is None:
+            return ""
+
         return Markup(
             '<a href="'
             + url_for("ProjectFilesModelView.download", filename=str(self.file))
@@ -40,12 +47,22 @@ class ProjectFiles(Model):
 
         )
 
+    def qrcode(self):
+        return Markup(
+            '<img style="margin: 0 auto; padding:5%" src="'+self.login_qrcode_base64+'" class="img-responsive" alt="...">'
+
+        )
+
     def file_name(self):
+        if self.file is None:
+            return ""
+
         return get_file_original_name(str(self.file))
 
 @event.listens_for(ProjectFiles, 'after_delete')
 def receive_after_delete(mapper, connection, target):
     "listen for the 'after_delete' event"
     #log.error("target", target, target.file)
-    im = ImageManager()
-    im.delete_file(target.file)
+    if target.file:
+        im = ImageManager()
+        im.delete_file(target.file)

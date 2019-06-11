@@ -8,7 +8,8 @@
   var $img = $('img');
   var old_src = $img.attr('src');
   var reload = function() {
-    $img.attr('src', old_src + "?" + new Date().getTime());
+    location.reload();
+    //$img.attr('src', old_src + "?" + new Date().getTime());
     setTimeout(reload, 6000)
   };
   setTimeout(reload, 6000)

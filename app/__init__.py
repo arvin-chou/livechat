@@ -9,11 +9,15 @@ from flask_appbuilder import AppBuilder, SQLA
 
 logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 logging.getLogger().setLevel(logging.DEBUG)
+#logging.basicConfig()
+#logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
 
 app = Flask(__name__)
 app.config.from_object("config")
 db = SQLA(app)
 appbuilder = AppBuilder(app, db.session)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = False;
 
 
 """
@@ -28,6 +32,5 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 """
-
 from . import views
 from . import models
