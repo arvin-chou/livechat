@@ -1,6 +1,8 @@
+import datetime
+
 from flask import Markup, url_for
 from flask_appbuilder.models.mixins import AuditMixin, FileColumn
-from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy import event
 from flask_appbuilder.filemanager import ImageManager
@@ -58,6 +60,15 @@ class ProjectFiles(Model):
             return ""
 
         return get_file_original_name(str(self.file))
+
+class LindFriend(AuditMixin, Model):
+    __tablename__ = "linefriend"
+    id = Column(Integer, primary_key=True, autoincrement = True)
+    user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    user = relationship("User", foreign_keys='LindFriend.user_id')
+    line_id = Column(String, nullable=False)
+    updated = Column(DateTime, default=datetime.datetime.utcnow)
+
 
 @event.listens_for(ProjectFiles, 'after_delete')
 def receive_after_delete(mapper, connection, target):

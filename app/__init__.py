@@ -2,6 +2,12 @@ import logging
 
 from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
+from flask_socketio import SocketIO
+
+from gevent import monkey
+monkey.patch_all()
+
+
 
 """
  Logging configuration
@@ -18,6 +24,7 @@ app.config.from_object("config")
 db = SQLA(app)
 appbuilder = AppBuilder(app, db.session)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = False;
+socketio = SocketIO(app)
 
 
 """

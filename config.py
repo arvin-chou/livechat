@@ -42,12 +42,14 @@ def del_column(engine, table_name, column):
 #del_column(engine, 'project', column)
 #add_column(engine, 'contact_group', column)
 #add_column(engine, 'contact', column)
-#add_column(engine, 'project_files', column)
+#column= Column('updated', DateTime)
+#add_column(engine, 'linefriend', column)
 #from app.m.contact import Contact, ContactGroup
 #Contact.__table__.drop(engine)
 #ContactGroup.__table__.drop(engine)
-#from app.m.quickfiles import Project, ProjectFiles
+#from app.m.quickfiles import Project, ProjectFiles, LindFriend
 #ProjectFiles.__table__.drop(engine)
+#LindFriend.__table__.drop(engine)
 
 
 

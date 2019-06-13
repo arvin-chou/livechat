@@ -1,0 +1,61 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+{{ lib.panel_begin(title) }}
+
+    {% if is_logout %}
+      {% block show_form %}
+      <div class="container">
+        <form method="post">
+          <div class="row" id="row1">
+            <fieldset>
+              <div class="row" id="main">
+                <div class="col-md-12">
+                  <div class="col-md-6"  style=" margin: 3px; ">
+                  <button class="form-control" id="1" class="add_serial" type="submit">
+                    <i class="fa fa-sign-out"></i>
+                    log out from line
+                  </button>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </form>
+      </div>
+      {% endblock show_form %}
+    {% else %}
+      {% block list_search scoped %}
+          {% call lib.accordion_tag("accordion1",_("Search"), False) %}
+              {{ widgets.get('search')()|safe }}
+          {% endcall %}
+      {% endblock %}
+
+      {% block list_list scoped %}
+          <div>
+          {{ widgets.get('list')()|safe }}
+          </div>
+      {% endblock %}
+    {% endif %}
+{{ lib.panel_end() }}
+
+<script>
+$(document).ready(function(){
+  var index = location.href.split('/').slice(0, -1).join('/');
+  var ok  = {% if resp %} {{resp['status']}} {% else %} 1 {% endif %};
+  if (!ok) {
+    ab_alert("{% if resp %} {{resp['msg']}} {% else %}  {% endif %}");
+    $('#modal-alert').on('hidden.bs.modal', function () {
+      location.href = index;
+    });
+  }
+  else {
+    {% if resp and not is_logout %}
+    location.href = index;
+    {% endif %}
+  }
+});
+</script>
+
+{% endblock %}
