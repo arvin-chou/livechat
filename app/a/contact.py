@@ -20,6 +20,7 @@ from flask_appbuilder.api import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.filemanager import ImageManager
 from flask_appbuilder.models.sqla.filters import FilterEqual 
+from flask_login import current_user
 from app import appbuilder, db
 from app.m.contact import Contact, ContactGroup
 from app.m.quickfiles import Project
@@ -124,7 +125,7 @@ class ContactModelApi(ModelRestApi):
                 group = ContactGroup()
                 group.line_id = cs['id']
                 #group.name = cs['title'][0]
-                group.name = cs['chat'][0]['title']
+                group.name = cs['title']
                 group.user_id = uid
                 _datamodel.add(group)
                 id = group.id
@@ -137,11 +138,19 @@ class ContactModelApi(ModelRestApi):
                 item.msg = c['chat'] 
                 item.updated = datetime.datetime.fromtimestamp(int(c['time']) / 1000)
                 item.line_id = cs['id']
-                item.t = c['t']
+                #item.t = c['t']
                 item.user_id = uid
                 item.contact_group_id = id
+                item.from_display_name = c['from_display_name']
+                item.from_id = c['from']
+                item.me_id = c['me']
 
                 s.add(item)
+
+            updated = item.updated 
+            group.updated = updated
+            s.add(group)
+
 
         message = "warning"
         try:

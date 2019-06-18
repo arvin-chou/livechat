@@ -1,12 +1,13 @@
 {% import 'appbuilder/general/lib.html' as lib %}
 
-<div class="well well-sm">
+<div class="well well-sm" style="display:none">
     {% block list_header scoped %}
         {{ lib.render_list_header(can_add, page, page_size, count, filters, actions, modelview_name) }}
     {% endblock %}
 </div>
 
     {% block begin_content scoped %}
+    <div class="list_wrap">
       <ul class="list">
     {% endblock %}
 
@@ -27,6 +28,8 @@
                     {% endif %}
                   </div>
                   <div class="status">
+                    {% set formatter = formatters_columns.get('updated') %}
+                    <span class="message-data-time">{{ formatter(item['updated']) }}</span>
                     <!--<i class="fa fa-circle online"></i> online-->
                   </div>
                 </div>
@@ -36,6 +39,93 @@
 
     {% block end_content scoped %}
         </ul>
+      </div>
     {% endblock %}
+
+<script>
+$(document).ready(function() {
+  var reorder = function($new_eles, $old_eles) {
+    var line_ids = $new_eles.map(function(i, v){ return $(v).data('line_id');}).toArray();
+    var new_line_ids = line_ids.slice(0, line_ids.length);
+    var delete_idxs = [];
+
+    $old_eles.each(function(){ 
+      var line_id = $(this).data('line_id'); 
+      var order_id = line_ids.indexOf(line_id);
+      $(this).data('order_id', order_id);
+      delete_idxs.push(order_id);
+    });
+
+    delete_idxs.sort(function(a, b) { 
+      return  a - b;
+    });
+
+    for (var i = delete_idxs.length - 1; i >= 0; i--) {
+      new_line_ids.splice(delete_idxs[i], 1);
+    }
+
+    var $old_eles_p = $old_eles.parent();
+    var $new_eles_p = $new_eles.parent();
+    for (var i = 0; i < new_line_ids.length; i++) {
+      $new_eles_p.find('li[data-line_id="'+new_line_ids[i]+'"]').detach().data('order_id', line_ids.length).prependTo($old_eles_p);
+    }
+    var order = "asc";
+    var $ordered = $old_eles.sort(function(a, b) {
+      var an = $(a).data('order_id'),
+        bn = $(b).data('order_id');
+
+      if (order == "asc") {
+        if (an > bn) {
+          //$(b).insertBefore($(a));
+          return 1;
+        }
+        if (an < bn) {
+          //$(a).insertBefore($(b));
+          return -1;
+        }
+      } 
+      else if (order == "desc") {
+        if (an < bn) {
+          //$(b).insertBefore($(a));
+          return 1;
+        }
+        if (an > bn) {
+          //$(a).insertBefore($(b));
+          return -1;
+        }
+      }
+      return 0;
+    });
+    $old_eles.parent().map(function() {
+      return {t:this, l:this.childNodes.length};
+    }).each(function(i, o) {
+      $(o.t).append($ordered.splice(0, o.l));
+    });
+    //$('.list_wrap ul').empty().append($ordered);
+    //$('li.clearfix').each(function(){ 
+    //  console.log( $(this).data('order_id'), $(this).find('.name').text());
+    //});
+  };
+  var refresh_contactgroup = function() {
+    var url = '{{url_for('ContactGroupModelChatView.list')}}';
+    var that = this;
+    $.get(url, function(){
+    }).done(function(msgs) {
+      var $child = $(msgs);
+      reorder($child.find('li.clearfix'), $('#people-list li.clearfix'));
+      //$('.list_wrap').empty().append($child.find('.list'));
+    });
+  };
+
+  $.fn.refresh_contactgroup = function() {
+    $.fn.refresh_contactgroup_id = setInterval(function() {
+      refresh_contactgroup();
+    }.bind(this), 1000);
+  };
+
+  $.fn.refresh_contactgroup();
+});
+
+</script>
 
 

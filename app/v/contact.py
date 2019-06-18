@@ -6,6 +6,7 @@ from flask_appbuilder.models.sqla.filters import FilterEqual
 from flask_login import current_user
 from app.m.contact import ContactGroup, Contact
 from app import appbuilder, db
+#import dateutil
 
 import logging
 log = logging.getLogger(__name__)
@@ -17,15 +18,22 @@ class ContactModelView(ModelView):
     @has_access
     def list(self):
         if current_user.id != 1:
-            if self._base_filters.get_filter_value('user_id') is None:
+            filter_user_id = self._base_filters.get_filter_value('user_id')
+            if filter_user_id is None or filter_user_id != current_user.id:
+                self._base_filters.clear_filters()
                 self._base_filters.add_filter('user_id', FilterEqual, current_user.id)
+        else:
+            self._base_filters.clear_filters()
 
         widgets = self._list()
         return self.render_template(
             self.list_template, title=self.list_title, widgets=widgets)
 
-    label_columns = {'contact_group':'Contacts Group'}
-    list_columns = ['id', 'name','msg', 'updated', 't']
+    label_columns = {'contact_group':'Contacts Group',
+                     'from_display_name': 'from_display_name',
+                     'me_id': 'me_id',
+                     'from_id': 'from_id'}
+    list_columns = ['id', 'from_display_name','msg', 'updated', 'me_id', 'from_id']
  
     show_fieldsets = [
                         (
@@ -47,25 +55,42 @@ class ContactGroupModelView(ModelView):
     @has_access
     def list(self):
         if current_user.id != 1:
-            if self._base_filters.get_filter_value('user_id') is None:
+            filter_user_id = self._base_filters.get_filter_value('user_id')
+            if filter_user_id is None or filter_user_id != current_user.id:
+                self._base_filters.clear_filters()
                 self._base_filters.add_filter('user_id', FilterEqual, current_user.id)
-            self.list_columns = ['name']
-        else:
-            self.list_columns = ['name','user_id']
 
+            self.list_columns = ['name', 'updated']
+
+        else:
+            self._base_filters.clear_filters()
+            self.list_columns = ['name', 'updated', 'user_id']
+
+        base_order = self.base_order
+        page_size = self.page_size
+        formatters_columns = self.formatters_columns
         if self.__class__.__name__ is 'ContactGroupModelChatView':
-            self.list_columns = ['name', 'id', 'line_id']
+            self.page_size = -1
+            self.base_order = ('updated','desc')
+            self.order_columns = ['updated']
+            self.formatters_columns = {'updated': lambda x: x.strftime('%p %I:%M').lstrip("0").replace(" 0", "") if x is not None else ""}
+            #self.formatters_columns = {'updated': lambda x: dateutil.parser.parse(x).strftime('%p %I:%M').lstrip("0").replace(" 0", "") }
+            self.list_columns = ['name', 'id', 'line_id', 'updated']
 
         widgets = self._list()
 
         if self.__class__.__name__ is 'ContactGroupModelChatView':
             widgets['list'].template = "chat_group.html"
+            self.page_size = page_size
+            self.base_order = base_order
+            self.formatters_columns = formatters_columns
 
         return self.render_template(
             self.list_template, title=self.list_title, widgets=widgets)
 
     #base_filters = [['user_id', FilterEqual, id]]
-    list_columns = ['name','user_id']
+    search_columns = ['user', 'name', 'line_id', 'updated']
+    list_columns = ['name', 'updated', 'user_id']
     show_columns = ['name', 'Contact']
     #add_fieldsets = [
     #                    (

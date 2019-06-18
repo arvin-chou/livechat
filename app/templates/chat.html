@@ -10,18 +10,20 @@
 <link href="{{url_for('static',filename='css/chat.css')}}" rel="stylesheet">
 
   <div class="chat-container clearfix">
-    <div class="col-xs-4 col-sm-2 col-md-4 people-list" id="people-list">
+    <div class="col-xs-12 col-sm-8 col-md-12 people-list" id="people-list">
       <!--
       <div class="search">
         <input type="text" placeholder="search" />
         <i class="fa fa-search"></i>
       </div>
       -->
+        <div style="display:none">
         {{ widgets.get('search')()|safe }}
+        </div>
         {{ widgets.get('list')()|safe }}
     </div>
     
-    <div class="col-xs-8 col-sm-6 col-md-8 chat">
+    <div class="col-xs-8 col-sm-6 col-md-8 chat" style="display:none" id="chat">
       <div class="chat-header clearfix">
         <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01_green.jpg" alt="avatar" />
         
@@ -29,7 +31,7 @@
           <div class="chat-with"></div>
           <div class="chat-num-messages">already messages</div>
         </div>
-        <i class="fa fa-star"></i>
+        <i class="fa fa-times"></i>
       </div> <!-- end chat-header -->
       
       <div class="chat-history">
@@ -118,14 +120,16 @@
       this.cacheDOM();
       this.bindEvents();
       this.render();
+      this.hookCloseChat();
     },
     cacheDOM: function() {
       this.$chatHistory = $('.chat-history');
       this.$button = $('button');
       this.$textarea = $('#message-to-send');
       this.$chatHistoryList =  this.$chatHistory.find('ul');
-      this.$peopleList = $('.people-list ul.list li');
+      this.$peopleList = $('.people-list .list_wrap');
       this.$chatWith = $('.chat-with');
+      this.timeout_id = -1;
     },
     bindEvents: function() {
       this.$button.on('click', this.addMessage.bind(this));
@@ -134,7 +138,7 @@
     },
     render: function() {
       this.scrollToBottom();
-      if (this.messageToSend.trim() !== '') {
+      if (this.messageToSend && this.messageToSend.trim() !== '') {
         var template = Handlebars.compile( $("#message-template").html());
         var context = {
           messageOutput: this.messageToSend,
@@ -165,8 +169,21 @@
       this.messageToSend = this.$textarea.val()
       this.render();
     },
+    hookCloseChat: function() {
+      var that = this;
+      $('.fa.fa-times').on('click', function(e) {
+        clearTimeout(that.timeout_id);
+        $.fn.refresh_contactgroup();
+        $('#chat').removeClass().addClass('col-xs-8 col-sm-6 col-md-8 chat').hide();
+        $('#people-list').removeClass().addClass('col-xs-12 col-sm-8 col-md-12 people-list').show();
+      });
+    },
     showMessage : function(event) {
       event.stopPropagation();
+      clearTimeout($.fn.refresh_contactgroup_id);
+      $('#chat').removeClass().addClass('col-xs-12 col-sm-8 col-md-12 chat').show();
+      $('#people-list').removeClass().addClass('col-xs-4 col-sm-2 col-md-4 people-list').hide();
+
       var $li = $(event.target).closest('li');
       var groupId = $li.data('id');
       var lineId = $li.data('line_id');
@@ -174,6 +191,7 @@
       url = url.slice(0, -1);
       url += groupId;
       var that = this;
+      clearTimeout(this.timeout_id);
       $.get(url, function(){
         that.$chatHistoryList.empty();
         that.$chatWith.html($li.find('.name').html());
@@ -186,6 +204,7 @@
         var latest_id = -1;
         for (var i = 0; i < chats.length; i++) {
           var c = chats[i];
+          c['id'] = parseInt(c['id'], 10);
           latest_time = c['updated'] > latest_time ? c['updated'] : latest_time;
           latest_id = c['id'] > latest_id ? c['id'] : latest_id;
           chat_str += that.getshowMessage(c);
@@ -193,23 +212,62 @@
         }
         that.$chatHistoryList.append(chat_str);
         that.scrollToBottom();
-        that.querylatest(lineId, latest_time, latest_id);
+        that.querylatest(lineId, latest_time, latest_id, groupId);
       });
     },
     isFloat: function(n) {
       return n === +n && n !== (n|0);
     },
     getshowMessage: function(c) {
-      var chat_str =
-        '<li>'+
-        '  <div class="message-data">'+
-        '    <span class="message-data-name"><i class="fa fa-circle online"></i>'+c['name']+'</span>'+
-        '    <span class="message-data-time">'+c['t']+'</span>'+
+      if (c['t'] == 'None' || c['t'] == null) {
+        if (this.isFloat(c['updated'])) {
+          c['updated'] = c['updated'] * 1000;
+        }
+        c['t'] = (new Date(c['updated'])).toLocaleString("zh-TW");
+        c['t'] = c['t'].split(" ")[1].slice(0, -3);
+      }
+
+      var chat_str = null;
+      //var message_type = "my-message";
+      var message_type = "other-message float-right";
+      if (c['me_id']) {
+        chat_str = 
+        '<li class="clearfix">'+
+        '  <div class="message-data align-right">'+
+        '    <span class="message-data-time" ></span> &nbsp; &nbsp;'+
+        '    <span class="message-data-name" >'+c['t']+'</span> <i class="fa fa-circle me"></i>'+
+        '    '+
         '  </div>'+
-        '  <div class="message my-message">'+
+        '  <div class="message other-message float-right">'+
         c['msg'] +
         '  </div>'+
         '</li>';
+      }
+      else {
+        //message_type = "other-message float-right";
+        message_type = "my-message";
+        chat_str = 
+        '<li>'+
+        ' <div class="message-data">'+
+        '   <span class="message-data-name"><i class="fa fa-circle online"></i>'+c['from_display_name']+'</span>'+
+        '   <span class="message-data-time">'+c['t']+'</span>'+
+        ' </div>'+
+        ' <div class="message my-message">'+
+        c['msg']+
+        '  </div>'+
+        '</li>';
+      }
+
+      //var chat_str =
+      //  '<li>'+
+      //  '  <div class="message-data">'+
+      //  '    <span class="message-data-name"><!--<i class="fa fa-circle online"></i>-->'+c['from_display_name']+'</span>'+
+      //  '    <span class="message-data-time">'+c['t']+'</span>'+
+      //  '  </div>'+
+      //  '  <div class="message '+message_type+'">'+
+      //  c['msg'] +
+      //  '  </div>'+
+      //  '</li>';
         return chat_str;
     },
     addMessageEnter: function(event) {
@@ -221,20 +279,20 @@
     scrollToBottom: function() {
        this.$chatHistory.scrollTop(this.$chatHistory[0].scrollHeight);
     },
-    querylatest: function(lineId, latest_time, latest_id) {
+    querylatest: function(lineId, latest_time, latest_id, groupId) {
       var url = '{{url_for('ContactModelView.list')}}';
       var off = new Date().getTimezoneOffset()
       var formatted_time = latest_time;
       if (this.isFloat(latest_time)) {
         formatted_time = new Date(latest_time * 1000 - off * 60 * 1000 + 1).toISOString().replace('T', ' ').slice(0, -5);
       }
-      url += "?_flt_1_updated=" + formatted_time + "&_flt_0_line_id=" + lineId + "&psize_ContactModelView=-1";
+      url += "?_flt_1_updated=" + formatted_time + "&_flt_3_line_id=" + lineId + "&psize_ContactModelView=-1&_flt_0_contact_group=" + groupId;
       var that = this;
       $.get(url, function(){
       }).done(function(msgs) {
         var $child = $(msgs);
         var chats = [];
-        var $headers = $child.find('.table.table-bordered th')
+        var $headers = $child.find('.table.table-bordered th');
         var $rows = $child.find('.table.table-bordered tbody tr').each(function(index) {
           $cells = $(this).find("td");
           chats[index] = {};
@@ -245,22 +303,23 @@
         var chat_str = "";
         for (var i = 0; i < chats.length; i++) {
           var c = chats[i];
-					if (c['id'] > latest_id) {
-						latest_id = c['id'];
-						chat_str += that.getshowMessage(c);
-						//console.log(i, latest_id, c);
-					}
+          c['id'] = parseInt(c['id'], 10);
+          if (c['id'] > latest_id) {
+            latest_id = c['id'];
+            chat_str += that.getshowMessage(c);
+            //console.log(i, latest_id, c);
+          }
           //console.log('no update', i, c['id'], c);
         }
 
-				if (chat_str) {
-					that.$chatHistoryList.append(chat_str);
-					that.scrollToBottom();
-				}
+        if (chat_str) {
+          that.$chatHistoryList.append(chat_str);
+          that.scrollToBottom();
+        }
 
-				setTimeout(function() {
-					that.querylatest(lineId, latest_time, latest_id);
-        }.bind(this), 1500);
+        that.timeout_id = setTimeout(function() {
+          that.querylatest(lineId, latest_time, latest_id, groupId);
+        }.bind(this), 1000);
       });
     },
     getCurrentTime: function() {

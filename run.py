@@ -39,5 +39,5 @@ socketio.on_event('my event', my_function_handler, namespace='/test')
 
 
 #socketio.run(app, host='0.0.0.0', port=8000,  threaded=True)
-socketio.run(app, host='0.0.0.0', port=8080, debug=True)
+socketio.run(app, host='0.0.0.0', port=8080, debug=False)
 #app.run(host="0.0.0.0", port=8080, debug=True)
