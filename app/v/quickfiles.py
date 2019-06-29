@@ -425,7 +425,7 @@ appbuilder.add_view(LineFuncuntionView, 'add friend', icon="fa-user-plus", categ
 appbuilder.add_link('logout',href='/linefuncuntion/logout', icon="fa-sign-out", category='Line')
 
 appbuilder.add_view(ProjectFile, "Add line monitor", icon="fa fa-qrcode", category="Line")
-appbuilder.add_view(ProjectFilesByUser, "Add line monitor", icon="fa fa-qrcode", category="Line",
+appbuilder.add_view(ProjectFilesByUser, "line function", icon="fa fa-qrcode", category="Line",
                     category_icon = "fa-envelope")
 #appbuilder.add_view(
 #    ProjectFilesModelView, "List all", icon="fa-table", category="Projects"
