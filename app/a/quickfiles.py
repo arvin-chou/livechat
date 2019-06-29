@@ -100,37 +100,47 @@ class ProjectModelApi(ModelRestApi):
                 return self.response_400(message="Request payload is not JSON")
 
             s = self.datamodel.session
-            datamodel = SQLAInterface(Project)
-            datamodel.session = s
+            #datamodel = SQLAInterface(Project)
+            #datamodel.session = s
+
+            #filters = datamodel.get_filters()
+            #filters.add_filter('name', FilterEqual, name)
+            #count, item = datamodel.query(filters=filters, page_size=1)
+            #if count:
+            #    item = item[0]
+            #    pid = item.id
+            #    datamodel = SQLAInterface(ProjectFiles)
+            #    datamodel.session = s
+            #    filters = datamodel.get_filters()
+            #    filters.add_filter('project_id', FilterEqual, pid)
+            #    count, child = datamodel.query(filters=filters, page_size=1)
+            #    child = child[0]
+
+            #else:
+            #    item = datamodel.obj()
+            #    item.name = name
+            #    item.created_by_fk = 1
+            #    item.changed_by_fk = 1
+
+            #    datamodel.add(item)
+
+            #    pid = item.id
+
+            #    datamodel = SQLAInterface(ProjectFiles)
+            #    datamodel.session = s
+            #    child = datamodel.obj()
+
+            datamodel = SQLAInterface(ProjectFiles, s)
 
             filters = datamodel.get_filters()
             filters.add_filter('name', FilterEqual, name)
             count, item = datamodel.query(filters=filters, page_size=1)
             if count:
-                item = item[0]
-                pid = item.id
-                datamodel = SQLAInterface(ProjectFiles)
-                datamodel.session = s
-                filters = datamodel.get_filters()
-                filters.add_filter('project_id', FilterEqual, pid)
-                count, child = datamodel.query(filters=filters, page_size=1)
-                child = child[0]
-
+                child = item[0]
             else:
-                item = datamodel.obj()
-                item.name = name
-                item.created_by_fk = 1
-                item.changed_by_fk = 1
-
-                datamodel.add(item)
-
-                pid = item.id
-
-                datamodel = SQLAInterface(ProjectFiles)
-                datamodel.session = s
                 child = datamodel.obj()
 
-            child.project = item
+            child.name = name
             child.description = description
             child.login_qrcode_base64 = login_qrcode_base64
             datamodel.add(child)

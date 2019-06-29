@@ -23,7 +23,7 @@ from flask_appbuilder.models.sqla.filters import FilterEqual
 from flask_login import current_user
 from app import appbuilder, db
 from app.m.contact import Contact, ContactGroup
-from app.m.quickfiles import Project
+from app.m.quickfiles import Project, ProjectFiles
 from app.v.contact import ContactModelView, ContactGroupModelView
 
 import logging
@@ -66,6 +66,18 @@ class ContactModelApi(ModelRestApi):
     @expose('/add', methods=["POST"])
     @protect()
     def add(self):
+        if not request.is_json:
+            return self.response_400(message="Request payload is not JSON")
+        action = request.json.get('action', 'add_chats')
+
+        if action == "add_chats":
+            return self.add_chats()
+        elif action == "update_group":
+            return self.update_group()
+
+        return self.response_400(message="not support")
+
+    def add_chats(self):
         ## post with json
         #{
         #   "len":7,
@@ -96,7 +108,8 @@ class ContactModelApi(ModelRestApi):
 
         s = self.datamodel.session
 
-        _datamodel = SQLAInterface(Project)
+        #_datamodel = SQLAInterface(Project)
+        _datamodel = SQLAInterface(ProjectFiles)
         _datamodel.session = s
         filters = _datamodel.get_filters()
         filters.add_filter('name', FilterEqual, str(rid))
@@ -105,17 +118,20 @@ class ContactModelApi(ModelRestApi):
         if count is 0:
             return self.response_400(message=("Missing required parameter, rid %s" % rid))
 
-        uid = item[0].user_id
+        uid = item[0].project.user_id
 
         for cs in chats:
             if cs.get('id', None) is None:
                 log.warning('id not found, current is', cs)
                 continue
+
             _datamodel = SQLAInterface(ContactGroup)
             _datamodel.session = s
             filters = _datamodel.get_filters()
             filters.add_filter('line_id', FilterEqual, cs['id'])
-            count, item = _datamodel.query(filters=filters, page_size=1)
+            filters.add_filter('projectfiles_name', FilterEqual, rid)
+            filters.add_filter('user_id', FilterEqual, uid)
+            count, item = _datamodel.query(filters=filters, page_size=0)
 
             id = -1;
             if count:
@@ -124,32 +140,53 @@ class ContactModelApi(ModelRestApi):
             else:
                 group = ContactGroup()
                 group.line_id = cs['id']
-                #group.name = cs['title'][0]
+                group.projectfiles_name = rid
                 group.name = cs['title']
                 group.user_id = uid
                 _datamodel.add(group)
                 id = group.id
 
+            is_updated = False
+            latest_update = None
+
             for c in cs['chat']:
-                item = Contact()
-                #d = datetime()
-                #d = datetime.datetime.fromtimestamp
-                item.name = c['title'] 
-                item.msg = c['chat'] 
-                item.updated = datetime.datetime.fromtimestamp(int(c['time']) / 1000)
-                item.line_id = cs['id']
-                #item.t = c['t']
-                item.user_id = uid
-                item.contact_group_id = id
-                item.from_display_name = c['from_display_name']
-                item.from_id = c['from']
-                item.me_id = c['me']
+                _datamodel = SQLAInterface(Contact)
+                _datamodel.session = s
+                filters = _datamodel.get_filters()
+                filters.add_filter('updated', FilterEqual, datetime.datetime.fromtimestamp(int(c['time']) / 1000))
+                filters.add_filter('line_id', FilterEqual, cs['id'])
+                filters.add_filter('from_id', FilterEqual, c['from'])
+                count, item = _datamodel.query(filters=filters, page_size=0)
 
-                s.add(item)
+                if count is 0:
+                    is_updated = True
+                    item = Contact()
+                    #d = datetime()
+                    #d = datetime.datetime.fromtimestamp
+                    item.name = c['title'] 
+                    item.msg = c['chat'] 
+                    t = int(c['time']) / 1000
+                    item.updated = datetime.datetime.fromtimestamp(t)
+                    if latest_update:
+                        if item.updated > latest_update:
+                            latest_update = item.updated 
+                    else:
+                        latest_update = item.updated
 
-            updated = item.updated 
-            group.updated = updated
-            s.add(group)
+                    item.line_id = cs['id']
+                    #item.t = c['t']
+                    item.user_id = uid
+                    item.contact_group_id = id
+                    item.from_display_name = c['from_display_name']
+                    item.from_id = c['from']
+                    item.me_id = c['me']
+                    item.c_type= c.get('type', 1)
+
+                    s.add(item)
+
+            if is_updated:
+                group.updated = latest_update 
+                s.add(group)
 
 
         message = "warning"
@@ -170,5 +207,86 @@ class ContactModelApi(ModelRestApi):
                 raise e
 
         return self.response(200, message=message)
+
+    def update_group(self):
+        ## post with json
+        #{
+        #   "len":7,
+        #   "rid": xx,
+        #   "action": "update_group",
+        #   "groups":[
+        #      {  },
+        #      {
+        #         "id":"u4ddf1308a8747a3f815cb2959c068ebf",
+        #         "name": XX,
+        #         "icon_base64":
+        if not request.is_json:
+            return self.response_400(message="Request payload is not JSON")
+
+        group_len = request.json.get('len', None)
+        groups = request.json.get('groups', None)
+        rid = request.json.get('rid', None)
+
+        if not group_len or not groups or not rid:
+            return self.response_400(message="Missing required parameter")
+
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(ProjectFiles)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('name', FilterEqual, str(rid))
+        count, item = _datamodel.query(filters=filters, page_size=1)
+
+        if count is 0:
+            return self.response_400(message=("Missing required parameter, rid %s" % rid))
+
+        uid = item[0].project.user_id
+
+        for cs in groups:
+            if cs.get('id', None) is None:
+                log.warning('id not found, current is', cs)
+                continue
+
+            _datamodel = SQLAInterface(ContactGroup)
+            _datamodel.session = s
+            filters = _datamodel.get_filters()
+            filters.add_filter('line_id', FilterEqual, cs['id']) # to
+            filters.add_filter('projectfiles_name', FilterEqual, rid)
+            filters.add_filter('user_id', FilterEqual, uid)
+            count, item = _datamodel.query(filters=filters, page_size=0)
+
+            id = -1;
+            if count:
+                group = item[0]
+            else:
+                group = ContactGroup()
+
+            group.line_id = cs['id'] # to
+            group.projectfiles_name = rid
+            group.user_id = uid
+            group.name = cs['name']
+            group.icon_base64 = cs['icon_base64']
+            _datamodel.add(group)
+
+        message = "warning"
+
+        try:
+            s.commit()
+            message = "success"
+        except IntegrityError as e:
+            message = "warning"
+            log.warning(LOGMSG_WAR_DBI_ADD_INTEGRITY.format(str(e)))
+            s.rollback()
+            if raise_exception:
+                raise e
+        except Exception as e:
+            message = str(sys.exc_info()[0]) + "danger"
+            log.exception(LOGMSG_ERR_DBI_ADD_GENERIC.format(str(e)))
+            s.rollback()
+            if raise_exception:
+                raise e
+
+        return self.response(200, message=message)
+
 
 appbuilder.add_api(ContactModelApi)

@@ -13,10 +13,19 @@ monkey.patch_all()
  Logging configuration
 """
 
+IS_DEBUG = True
+IS_DEBUG = False
+
 logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 logging.getLogger().setLevel(logging.DEBUG)
-#logging.basicConfig()
-#logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+if IS_DEBUG:
+    logging.getLogger().setLevel(logging.DEBUG)
+    #logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+else:
+    logging.getLogger('engineio.server').setLevel(logging.WARN)
+    logging.getLogger('flask_appbuilder').setLevel(logging.WARN)
 
 
 app = Flask(__name__)

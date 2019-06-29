@@ -1,3 +1,6 @@
+from flask import (
+    request,
+)
 from flask import render_template
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView, ModelRestApi
@@ -5,6 +8,7 @@ from flask_appbuilder import AppBuilder,expose,BaseView,has_access
 from flask_appbuilder.models.sqla.filters import FilterEqual 
 from flask_login import current_user
 from app.m.contact import ContactGroup, Contact
+from app.m.quickfiles import ProjectFiles
 from app import appbuilder, db
 #import dateutil
 
@@ -32,8 +36,10 @@ class ContactModelView(ModelView):
     label_columns = {'contact_group':'Contacts Group',
                      'from_display_name': 'from_display_name',
                      'me_id': 'me_id',
-                     'from_id': 'from_id'}
-    list_columns = ['id', 'from_display_name','msg', 'updated', 'me_id', 'from_id']
+                     'from_id': 'from_id',
+                     'c_type': 'c_type'
+                     }
+    list_columns = ['id', 'from_display_name','msg', 'updated', 'me_id', 'from_id', 'c_type']
  
     show_fieldsets = [
                         (
@@ -54,36 +60,56 @@ class ContactGroupModelView(ModelView):
     @expose("/list/")
     @has_access
     def list(self):
+        name = request.args.get('name', default = '-1', type = str)
+
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(ProjectFiles)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('name', FilterEqual, name)
+        count, item = _datamodel.query(filters=filters, page_size=0)
+
+        base_order = self.base_order
+        page_size = self.page_size
+        order_columns = self.order_columns;
+        formatters_columns = self.formatters_columns
+
+        if count is 0 or ProjectFiles.is_not_active(item[0]):
+            name = -1
+
         if current_user.id != 1:
             filter_user_id = self._base_filters.get_filter_value('user_id')
             if filter_user_id is None or filter_user_id != current_user.id:
-                self._base_filters.clear_filters()
-                self._base_filters.add_filter('user_id', FilterEqual, current_user.id)
+                pass
+
+            self._base_filters.clear_filters()
+            self._base_filters.add_filter('user_id', FilterEqual, current_user.id)
+            self._base_filters.add_filter('projectfiles_name', FilterEqual, name)
 
             self.list_columns = ['name', 'updated']
+
+            self.page_size = -1
+            self.base_order = ('updated','desc')
+            self.order_columns = ['updated']
 
         else:
             self._base_filters.clear_filters()
             self.list_columns = ['name', 'updated', 'user_id']
 
-        base_order = self.base_order
-        page_size = self.page_size
-        formatters_columns = self.formatters_columns
         if self.__class__.__name__ is 'ContactGroupModelChatView':
-            self.page_size = -1
-            self.base_order = ('updated','desc')
-            self.order_columns = ['updated']
             self.formatters_columns = {'updated': lambda x: x.strftime('%p %I:%M').lstrip("0").replace(" 0", "") if x is not None else ""}
             #self.formatters_columns = {'updated': lambda x: dateutil.parser.parse(x).strftime('%p %I:%M').lstrip("0").replace(" 0", "") }
-            self.list_columns = ['name', 'id', 'line_id', 'updated']
+            self.list_columns = ['name', 'id', 'line_id', 'updated', 'icon_base64']
 
         widgets = self._list()
 
         if self.__class__.__name__ is 'ContactGroupModelChatView':
             widgets['list'].template = "chat_group.html"
-            self.page_size = page_size
-            self.base_order = base_order
-            self.formatters_columns = formatters_columns
+
+        self.page_size = page_size
+        self.base_order = base_order
+        self.formatters_columns = formatters_columns
+        self.order_columns = order_columns;
 
         return self.render_template(
             self.list_template, title=self.list_title, widgets=widgets)

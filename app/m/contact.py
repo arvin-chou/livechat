@@ -3,16 +3,24 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship, backref
+#from app.m.quickfiles import ProjectFiles
 
 class ContactGroup(Model):
     __tablename__ = "contact_group"
     id = Column(Integer, primary_key=True)
+    is_visible = Column(Integer, nullable=False, default=1)
+    icon_base64 = Column(String)
     name = Column(String, nullable=False)
     line_id = Column(String)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     user = relationship("User", foreign_keys='ContactGroup.user_id')
     updated = Column(DateTime)
+
+    #name = Column(String(150), unique=True, nullable=False)
+    projectfiles_name = Column(String, ForeignKey("project_files.name"))
+    projectfiles = relationship("ProjectFiles", backref=backref("ContactGroup", cascade="all, delete-orphan"), foreign_keys='ContactGroup.projectfiles_name')
     #contacts = relationship('Contact', back_populates = 'contact_group', lazy = True)
+    #icon_base64 = Column(String)
 
     def __repr__(self):
         return self.name
@@ -21,14 +29,15 @@ class ContactGroup(Model):
 class Contact(Model):
     __tablename__ = "contact"
     id = Column(Integer, primary_key=True)
-    line_id = Column(String)
-    name = Column(String, unique=False, nullable=False)
+    line_id = Column(String) # to
+    name = Column(String, unique=False, nullable=False) #rid
     msg = Column(String, unique=False, nullable=False)
     from_id = Column(String, unique=False)
     from_display_name = Column(String, unique=False)
     me_id = Column(String, unique=False)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     user = relationship("User", foreign_keys='Contact.user_id')
+    c_type = Column(Integer, default=1) # content type as 1 is chat 2 is sticker
 
     #contact_group_id = Column(Integer)
     #contact_group_id = Column(Integer, ForeignKey('contact_group.id'))
@@ -56,5 +65,6 @@ class Contact(Model):
         out['from_display_name'] = self.from_display_name
         out['me_id'] = self.me_id
         out['from_id'] = self.from_id
+        out['c_type'] = self.c_type
         return json.dumps(out, ensure_ascii=False)
 

@@ -1,18 +1,33 @@
-{% import 'appbuilder/general/lib.html' as lib %}
-{% include 'appbuilder/general/confirm.html' %}
-{% include 'appbuilder/general/alert.html' %}
-<div class="row">
-  {% for item in include_columns %}
+<div class="row line-wrapper">
+  <link href="/static/css/bootstrap_3.3.7.min.css" rel="stylesheet">
+  {% import 'appbuilder/general/lib.html' as lib %}
+  {% include 'appbuilder/general/confirm.html' %}
+  {% include 'appbuilder/general/alert.html' %}
+  <div class="row">
+    {% for item in include_columns %}
     {% set formatter = formatters_columns.get(item) %}
     {% set v = value_columns[loop.index-1]%}
-    <div class="text-center">
+    <div class="qr-code-container-wrapper text-center">
       {{formatter(v) if formatter else v}}
     </div>
-  {% endfor %}
-</div>
+    {% endfor %}
+    <div class="qr-code-container-icon-wrapper text-center" style="display:none">
+      <div class="share-icon-wrapper"><div class="share-icon" ><img src="{{url_for('static',filename='line/bluetooth.png')}}" class="share-icon"></div></div>
+      <div class="share-icon-wrapper"><div class="share-icon" ><img src="{{url_for('static',filename='line/static.png')}}" class="share-icon"></div></div>
+    </div>
+    <!--<div class="clearfix"></div>-->
+    <div class="qr-code-container-hint text-center">
+      <p>對方僅需使用LNE的行動條碼掃描器,並對準本
+行動條碼,即可將您加入好友名單內。</p>
+    </div>
+
+    <div class="clearfix"></div>
+  </div>
+  <div class="row line-hint">
+  </div>
 
 
-<div class="well well-sm">
-  {{ lib.render_action_links(actions, pk, modelview_name) }}
-  {{ lib.lnk_back() }}
+  <div class="well well-sm qrcode-reader-hint">
+    <p>行動條碼掃描器</p>
+  </div>
 </div>

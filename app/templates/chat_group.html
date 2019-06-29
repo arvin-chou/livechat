@@ -17,7 +17,10 @@
            {% endfor %}
            {% set value = "name" %}
               <li class="clearfix" data-id="{{ item['id'] }}" data-line_id="{{ item['line_id'] }}">
-                <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg" alt="avatar" />
+                <!--<img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg" alt="avatar" />-->
+                <div class="image-cropper">
+                  <img class="profile-pic" src="data:image/png;base64,{{item['icon_base64']}}" alt="avatar" />
+                </div>
                 <div class="about">
                   <div class="name">
                     {% set formatter = formatters_columns.get(value) %}
@@ -44,6 +47,11 @@
 
 <script>
 $(document).ready(function() {
+  $.fn.get_url_param = function(name){
+    if(name=(new RegExp('[?&]'+encodeURIComponent(name)+'=([^&]*)')).exec(location.search))
+      return decodeURIComponent(name[1]);
+  };
+
   var reorder = function($new_eles, $old_eles) {
     var line_ids = $new_eles.map(function(i, v){ return $(v).data('line_id');}).toArray();
     var new_line_ids = line_ids.slice(0, line_ids.length);
@@ -63,6 +71,17 @@ $(document).ready(function() {
     for (var i = delete_idxs.length - 1; i >= 0; i--) {
       new_line_ids.splice(delete_idxs[i], 1);
     }
+
+    $new_eles.each(function(e, t){
+      var $t = $(t);
+      var line_id = $t.data('line_id');
+      var time = $t.find('.message-data-time').html();
+      var $old_ele = $old_eles.filter(function(){return $(this).data('line_id') == line_id;});
+      if ($old_ele.length) {
+        $old_ele.find('.message-data-time').html(time);
+      }
+    });
+
 
     var $old_eles_p = $old_eles.parent();
     var $new_eles_p = $new_eles.parent();
@@ -108,6 +127,8 @@ $(document).ready(function() {
   };
   var refresh_contactgroup = function() {
     var url = '{{url_for('ContactGroupModelChatView.list')}}';
+    var name = $.fn.get_url_param('name');
+    url += '?name=' + name;
     var that = this;
     $.get(url, function(){
     }).done(function(msgs) {

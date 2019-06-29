@@ -32,24 +32,25 @@ def del_column(engine, table_name, column):
 
 
 
-#column = Column('is_used', Boolean, nullable=False, default=0)
 #column = Column('updated', DateTime)
-#column= Column('user_id', Integer, ForeignKey("RegisterUser.id"))
+#column= Column('c_type', Integer)
 #column= Column('line_id', String)
 #column= Column('msg', LONGTEXT)
 #column= Column('login_qrcode_base64', String)
-#column= Column('t', String)
+#column= Column('icon_base64', String)
 #del_column(engine, 'project', column)
+#column= Column('projectfiles_name', String)
+#add_column(engine, 'contact', column)
+#column= Column('contactgroup_id', Integer)
+#add_column(engine, 'project_files', column)
+#add_column(engine, 'project', column)
+#column= Column('is_visible', Integer)
 #add_column(engine, 'contact_group', column)
-#column= Column('me_id', String)
-#add_column(engine, 'contact', column)
-#column= Column('from_display_name', String)
-#add_column(engine, 'contact', column)
-#column= Column('from_id', String)
-#add_column(engine, 'contact', column)
 #column= Column('updated', DateTime)
 #add_column(engine, 'linefriend', column)
-#from app.m.contact import Contact, ContactGroup
+#engine.execute('update contact_group set user_id = 4')
+#engine.execute('update contact set user_id = 4')
+#Contact.__table__.drop(engine)
 #Contact.__table__.drop(engine)
 #ContactGroup.__table__.drop(engine)
 #from app.m.quickfiles import Project, ProjectFiles, LindFriend
@@ -112,13 +113,13 @@ BABEL_DEFAULT_FOLDER = "translations"
 # The allowed translation for you app
 LANGUAGES = {
     "en": {"flag": "gb", "name": "English"},
-    "pt": {"flag": "pt", "name": "Portuguese"},
-    "pt_BR": {"flag": "br", "name": "Pt Brazil"},
-    "es": {"flag": "es", "name": "Spanish"},
-    "de": {"flag": "de", "name": "German"},
-    "zh": {"flag": "cn", "name": "Chinese"},
-    "ru": {"flag": "ru", "name": "Russian"},
-    "pl": {"flag": "pl", "name": "Polish"},
+    #"pt": {"flag": "pt", "name": "Portuguese"},
+    #"pt_BR": {"flag": "br", "name": "Pt Brazil"},
+    #"es": {"flag": "es", "name": "Spanish"},
+    #"de": {"flag": "de", "name": "German"},
+    #"zh": {"flag": "cn", "name": "Chinese"},
+    #"ru": {"flag": "ru", "name": "Russian"},
+    #"pl": {"flag": "pl", "name": "Polish"},
 }
 # ---------------------------------------------------
 # Image and file configuration

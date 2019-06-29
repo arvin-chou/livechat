@@ -4,15 +4,128 @@
 
 {% block show_form %}
     {{ widgets.get('show')()|safe }}
+<style>
+.line-wrapper {
+  position: absolute;
+  top: 25%;
+}
+body, .qr-code-container-wrapper, .line-hint{
+  background-color: #FAFAFA;
+}
+.qr-code-container-icon-wrapper{
+  position: relative;
+  text-align: center;
+  margin: auto;
+  padding: 10% 0 3% 0;
+}
+.qr-code-container-hint {
+  position: relative;
+  text-align: center;
+  /* top: 65%; */
+  margin: auto;
+  /* left: 25%; */
+  width: 90%;
+  padding: 10% 11%;
+}
+.qr-code-container {
+  position: relative;
+  text-align: center;
+  background-color: white;
+  width: 50%;
+  margin: auto;
+}
+.qr-code-container > img {
+  padding: 11% !important;
+  width: 100%;
+  border: 1px solid white;
+}
+.qr-code-centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  background: url({{url_for('static',filename='line/qrcode_line.png')}});
+}
+
+.share-icon-wrapper {
+  display: inline-block;
+  padding: 0 3%;
+}
+.share-icon {
+  margin: auto;
+  width: 42px;
+  height: 42px;
+  background-color: white;
+  border-radius: 50%;
+  position: relative;
+}
+.share-icon > img{
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: 25%;
+  left: 25%;
+}
+
+.well-sm {
+  background: #0bc060;
+  text-align: center;
+  margin: 0px;
+}
+.well-sm > p{
+  margin: 4px;
+  font-size: 20px;
+  color: white;
+}
+.navbar-inverse {
+  background: #495171;
+}
+.navbar-inverse a {
+  color: white;
+}
+.navbar-inverse button {
+  border-color: transparent !important;
+  color: white;
+}
+.navbar, .navbar-toggle {
+  margin-bottom: 0px;
+}
+</style>
 <script type="text/javascript">
-  var $img = $('img');
-  var old_src = $img.attr('src');
-  var reload = function() {
-    location.reload();
-    //$img.attr('src', old_src + "?" + new Date().getTime());
-    setTimeout(reload, 6000)
-  };
-  setTimeout(reload, 6000)
+  $(document).ready(function() {
+    var $img = $('.qr-code-container > img');
+    var old_src = $img.attr('src');
+    var reload = function() {
+      location.reload();
+      //$img.attr('src', old_src + "?" + new Date().getTime());
+      setTimeout(reload, 6000)
+    };
+    //setTimeout(reload, 6000)
+    var reload_qrcode = function() {
+      var url = '{{url_for('ProjectFile.show', pk=0)}}';
+      url = url.slice(0, -1);
+      url = location.href;
+      $.get(url, function(){
+      }).done(function(msgs) {
+        var $child = $(msgs);
+        var $img = $child.find('.qr-code-container > img');
+        var src = $img.attr('src');
+        $('.qr-code-container > img').attr('src', src);
+        setTimeout(reload_qrcode, 6000)
+      });
+    }
+    setTimeout(reload_qrcode, 6000)
+    $('footer').remove();
+    var $qrcode_reader_hint = $('.qrcode-reader-hint');
+    var qrcode_reader_hint_h = $qrcode_reader_hint.height() + parseInt($qrcode_reader_hint.css('padding-top').slice(0, -2), 10) + parseInt($qrcode_reader_hint.css('padding-bottom').slice(0, -2), 10);
+    $('.line-hint').height($(window).height() - qrcode_reader_hint_h - $('.line-hint').offset().top);
+    var $navbar_inverse = $('.navbar.navbar-inverse');
+    $navbar_inverse.find('a').html('顯示行動條碼');
+    $navbar_inverse.find('button').empty().append('<span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>');
+    $('.navbar-brand').prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
+  });
 </script>
 {% endblock show_form %}
 

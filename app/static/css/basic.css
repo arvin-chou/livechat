@@ -1,0 +1,13 @@
+.qr-code-container {
+  position: relative;
+  text-align: center;
+}
+.qr-code-centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  background: url(/static/line/qrcode_line.png);
+}

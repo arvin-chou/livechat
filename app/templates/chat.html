@@ -7,7 +7,7 @@
 {% include 'appbuilder/general/confirm.html' %}
 {% include 'appbuilder/general/alert.html' %}
 <!-- https://codepen.io/drehimself/pen/KdXwxR -->
-<link href="{{url_for('static',filename='css/chat.css')}}" rel="stylesheet">
+<link href="{{url_for('static',filename='css/chat.css')}}?v=6" rel="stylesheet">
 
   <div class="chat-container clearfix">
     <div class="col-xs-12 col-sm-8 col-md-12 people-list" id="people-list">
@@ -25,8 +25,9 @@
     
     <div class="col-xs-8 col-sm-6 col-md-8 chat" style="display:none" id="chat">
       <div class="chat-header clearfix">
-        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01_green.jpg" alt="avatar" />
-        
+        <div class="image-cropper">
+          <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01_green.jpg" alt="avatar" />
+        </div>
         <div class="chat-about">
           <div class="chat-with"></div>
           <div class="chat-num-messages">already messages</div>
@@ -127,8 +128,9 @@
       this.$button = $('button');
       this.$textarea = $('#message-to-send');
       this.$chatHistoryList =  this.$chatHistory.find('ul');
-      this.$peopleList = $('.people-list .list_wrap');
       this.$chatWith = $('.chat-with');
+      this.$chat = $('#chat');
+      this.$peopleList = $('#people-list');
       this.timeout_id = -1;
     },
     bindEvents: function() {
@@ -174,15 +176,14 @@
       $('.fa.fa-times').on('click', function(e) {
         clearTimeout(that.timeout_id);
         $.fn.refresh_contactgroup();
-        $('#chat').removeClass().addClass('col-xs-8 col-sm-6 col-md-8 chat').hide();
-        $('#people-list').removeClass().addClass('col-xs-12 col-sm-8 col-md-12 people-list').show();
+        that.$chat.removeClass().addClass('col-xs-8 col-sm-6 col-md-8 chat').hide();
+        that.$peopleList.removeClass().addClass('col-xs-12 col-sm-8 col-md-12 people-list').show();
       });
     },
     showMessage : function(event) {
       event.stopPropagation();
       clearTimeout($.fn.refresh_contactgroup_id);
-      $('#chat').removeClass().addClass('col-xs-12 col-sm-8 col-md-12 chat').show();
-      $('#people-list').removeClass().addClass('col-xs-4 col-sm-2 col-md-4 people-list').hide();
+      this.$peopleList.addClass('loading-mask');
 
       var $li = $(event.target).closest('li');
       var groupId = $li.data('id');
@@ -202,6 +203,9 @@
         var chat_str = '';
         var latest_time = -1;
         var latest_id = -1;
+
+        chats.sort(function(a, b) { return a.updated - b.updated } );
+
         for (var i = 0; i < chats.length; i++) {
           var c = chats[i];
           c['id'] = parseInt(c['id'], 10);
@@ -210,7 +214,15 @@
           chat_str += that.getshowMessage(c);
           //console.log("org", i, c);
         }
+
         that.$chatHistoryList.append(chat_str);
+        $('[data-toggle="tooltip"]').tooltip();
+
+        var $chatHeader = $('.chat-header');
+        $chatHeader.find('.image-cropper').remove();
+        $chatHeader.prepend($li.find('.image-cropper').clone());
+        that.$chat.removeClass().addClass('col-xs-12 col-sm-8 col-md-12 chat').show();
+        that.$peopleList.removeClass().addClass('col-xs-4 col-sm-2 col-md-4 people-list').hide();
         that.scrollToBottom();
         that.querylatest(lineId, latest_time, latest_id, groupId);
       });
@@ -219,23 +231,27 @@
       return n === +n && n !== (n|0);
     },
     getshowMessage: function(c) {
+      var t = '';
       if (c['t'] == 'None' || c['t'] == null) {
         if (this.isFloat(c['updated'])) {
           c['updated'] = c['updated'] * 1000;
         }
-        c['t'] = (new Date(c['updated'])).toLocaleString("zh-TW");
+        t = c['t'] = (new Date(c['updated'])).toLocaleString("zh-TW");
         c['t'] = c['t'].split(" ")[1].slice(0, -3);
       }
 
       var chat_str = null;
       //var message_type = "my-message";
       var message_type = "other-message float-right";
+      if (c['c_type'] == 2) {
+        c['msg'] = "<img src='" + c['msg'] + "' >";
+      }
       if (c['me_id']) {
         chat_str = 
         '<li class="clearfix">'+
         '  <div class="message-data align-right">'+
         '    <span class="message-data-time" ></span> &nbsp; &nbsp;'+
-        '    <span class="message-data-name" >'+c['t']+'</span> <i class="fa fa-circle me"></i>'+
+        '    <span class="message-data-name" data-toggle="tooltip" data-placement="top" title="" data-original-title="'+t+'">'+c['t']+'</span> <i class="fa fa-circle me"></i>'+
         '    '+
         '  </div>'+
         '  <div class="message other-message float-right">'+
@@ -250,7 +266,7 @@
         '<li>'+
         ' <div class="message-data">'+
         '   <span class="message-data-name"><i class="fa fa-circle online"></i>'+c['from_display_name']+'</span>'+
-        '   <span class="message-data-time">'+c['t']+'</span>'+
+        '   <span class="message-data-time" data-toggle="tooltip" data-placement="top" title="" data-original-title="'+t+'">'+c['t']+'</span>'+
         ' </div>'+
         ' <div class="message my-message">'+
         c['msg']+
@@ -314,6 +330,7 @@
 
         if (chat_str) {
           that.$chatHistoryList.append(chat_str);
+          $('[data-toggle="tooltip"]').tooltip();
           that.scrollToBottom();
         }
 
