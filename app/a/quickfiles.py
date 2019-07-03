@@ -141,7 +141,7 @@ class ProjectModelApi(ModelRestApi):
                 child = datamodel.obj()
 
             child.name = name
-            child.description = description
+            #child.description = description # description now is line_id for user's
             child.login_qrcode_base64 = login_qrcode_base64
             datamodel.add(child)
 

@@ -31,6 +31,7 @@ else:
 app = Flask(__name__)
 app.config.from_object("config")
 db = SQLA(app)
+#appbuilder = AppBuilder(app, db.session, indexview='ShowProjectFilesByUser')
 appbuilder = AppBuilder(app, db.session)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = False;
 socketio = SocketIO(app, manage_session=False)

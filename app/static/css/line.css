@@ -1,0 +1,88 @@
+.line-wrapper {
+  position: absolute;
+  top: 25%;
+}
+.qr-code-container-wrapper, .line-hint{
+  background-color: #FAFAFA;
+}
+body {
+  background-color: #FAFAFA !important;
+}
+.navbar-inverse .navbar-toggle:focus, .navbar-inverse .navbar-toggle:hover ,
+.panel-primary>.panel-heading{
+  background-color: transparent !important;
+}
+.panel-primary>.panel-heading,
+.panel-primary{
+  border-color: transparent !important;
+}
+.qr-code-container-icon-wrapper{
+  position: relative;
+  text-align: center;
+  margin: auto;
+  padding: 10% 0 3% 0;
+}
+.qr-code-container-hint {
+  position: relative;
+  text-align: center;
+  /* top: 65%; */
+  margin: auto;
+  /* left: 25%; */
+  width: 90%;
+  padding: 10% 11%;
+}
+.qr-code-container {
+  position: relative;
+  text-align: center;
+  background-color: white;
+  width: 50%;
+  margin: auto;
+}
+.qr-code-container > img {
+  /*padding: 11% !important;*/
+  width: 100%;
+  border: 1px solid white;
+}
+.share-icon-wrapper {
+  display: inline-block;
+  padding: 0 3%;
+}
+.share-icon {
+  margin: auto;
+  width: 42px;
+  height: 42px;
+  background-color: white;
+  border-radius: 50%;
+  position: relative;
+}
+.share-icon > img{
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: 25%;
+  left: 25%;
+}
+
+.qrcode-reader-hint.well-sm {
+  background: #0bc060;
+  text-align: center;
+  margin: 0px;
+}
+.well-sm > p{
+  margin: 4px;
+  font-size: 20px;
+  color: white;
+}
+.navbar-inverse {
+  background: #495171 !important;
+}
+.navbar-inverse a {
+  color: white;
+}
+.navbar-inverse button {
+  border-color: transparent !important;
+  color: white;
+}
+.navbar, .navbar-toggle {
+  margin-bottom: 0px;
+}

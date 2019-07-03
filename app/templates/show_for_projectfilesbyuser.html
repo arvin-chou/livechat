@@ -1,0 +1,118 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+{{ lib.panel_begin(title) }}
+
+<link href="{{url_for('static',filename='css/chat.css')}}?v=6" rel="stylesheet">
+<style>
+.tab-content .pull-right {
+  display: none;
+}
+</style>
+
+{% if related_views is defined %}
+    <ul class="nav nav-tabs">
+        {% for view in related_views %}
+            <li>
+                <a style="display:none" href="#{{view.__class__.__name__}}" data-toggle="tab">{{view.title}}</a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="tab-content">
+    {% for view in related_views %}
+        <div id="{{view.__class__.__name__}}" class="tab-pane">
+            {{ widgets.get('related_views')[loop.index - 1](pk = pk)|safe }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+{% block show_form %}
+    <div style="display:none" id="Home" class="tab-pane active">
+        {{ widgets.get('show')()|safe }}
+    </div>
+{% endblock show_form %}
+
+{% if related_views is defined %}</div>{% endif %}
+{{ lib.panel_end() }}
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    var is_rendered = false;
+    $('#modal-alert').on('show.bs.modal', function () {
+      if (!is_rendered) {
+        $('a>.fa-search').parent().each(function(){
+          this.dataset.originalTitle = "{{_("show your qrcode")}}"
+        });
+        $('[data-toggle="tooltip"]').tooltip();
+        is_rendered = true;
+      }
+    });
+
+    $('table a').off('click').on('click', function(e) {
+      
+      var $target = $(e.target).closest('td');
+      var is_show = $target.find('.fa-search').length > 0;
+      //console.log(is_show, $target.closest('tr').find('td').last().html());
+      var $current_tr = $target.closest('tr');
+      if (is_show) {
+        var pass = true;
+        var txt = "";
+        if ($current_tr.find('button.btn-danger').length) {
+          pass = !pass;
+          txt = "{{_("please re-active your account")}}";
+        }
+        else if ($current_tr.find('td').last().html() == 'None') {
+          pass = !pass;
+          txt = "{{_("please fill up your line id")}}";
+        }
+
+        if (pass) {
+          return true;
+        }
+        else {
+          e.preventDefault();
+          ab_alert(txt);
+          return false;
+        }
+      }
+
+      var is_logout = $target.find('a').hasClass('logout');
+      if (is_logout) {
+        e.preventDefault();
+
+        $('.modal-text').text("{{_("are you sure to logout?")}}");
+        $('#modal-confirm').modal('show');
+        $('#modal-confirm-ok').off().on('click', function(e) {
+          var logout_url = $target.find('a').attr('href');
+          $.ajax({
+            type: "POST",
+            url: logout_url,
+            success: function(data) {
+              console.log(data);
+              location.reload();
+            }
+          });
+        });
+
+        //$('#modal-alert').off('hidden.bs.modal').on('hidden.bs.modal', function (event) {
+        //  var $button = $(event.relatedTarget)
+        //  if ($button.length) {
+        //    //location.href = index;
+        //    console.log($target.find('a').attr('href'));
+        //  }
+        //});
+        return false;
+      }
+    });
+
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+</script>
+
+{% endblock content %}
+
+{% block add_tail_js %}
+<script src="{{url_for('appbuilder.static',filename='js/ab_keep_tab.js')}}"></script>
+{% endblock %}

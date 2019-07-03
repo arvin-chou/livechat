@@ -37,12 +37,15 @@ def del_column(engine, table_name, column):
 #column= Column('line_id', String)
 #column= Column('msg', LONGTEXT)
 #column= Column('login_qrcode_base64', String)
+#column= Column('user_name', String)
+#add_column(engine, 'project_files', column)
 #column= Column('icon_base64', String)
+#add_column(engine, 'project_files', column)
+
 #del_column(engine, 'project', column)
 #column= Column('projectfiles_name', String)
 #add_column(engine, 'contact', column)
 #column= Column('contactgroup_id', Integer)
-#add_column(engine, 'project_files', column)
 #add_column(engine, 'project', column)
 #column= Column('is_visible', Integer)
 #add_column(engine, 'contact_group', column)
@@ -56,8 +59,6 @@ def del_column(engine, table_name, column):
 #from app.m.quickfiles import Project, ProjectFiles, LindFriend
 #ProjectFiles.__table__.drop(engine)
 #LindFriend.__table__.drop(engine)
-
-
 
 
 # Flask-WTF flag for CSRF
@@ -112,6 +113,7 @@ BABEL_DEFAULT_LOCALE = "en"
 BABEL_DEFAULT_FOLDER = "translations"
 # The allowed translation for you app
 LANGUAGES = {
+    "zh_TW": {"flag": "tw", "name": "Taiwan"},
     "en": {"flag": "gb", "name": "English"},
     #"pt": {"flag": "pt", "name": "Portuguese"},
     #"pt_BR": {"flag": "br", "name": "Pt Brazil"},

@@ -1,4 +1,7 @@
+from flask_babel import lazy_gettext as _
 import datetime
+import base64
+from io import BytesIO
 
 from flask import Markup, url_for
 from app import app
@@ -44,10 +47,12 @@ class ProjectFiles(Model):
     project_id = Column(Integer, ForeignKey("project.id"))
     project = relationship("Project", backref=backref("ProjectFiles", cascade="all, delete-orphan"))
     file = Column(FileColumn, nullable=True)
-    description = Column(String(150))
+    description = Column(String(150)) # my line id
     login_qrcode_base64 = Column(String)
-    status = Column(Integer, default=0)
+    status = Column(Integer, default=0) # 0 is logout, 1 is online
     validate_time = Column(DateTime)
+    user_name = Column(String) # for be monitored display name
+    icon_base64 = Column(String) # for be monitored image
 
     def username(self):
         user = ''
@@ -62,24 +67,54 @@ class ProjectFiles(Model):
         if self.is_not_active(self):
             return ""
 
+        s = _('show chat')
+        if self.is_offline():
+            pass
+        else:
+            s = """ 
+                <div class="list clearfix">
+                    <div class="image-cropper">
+                      <img class="profile-pic" src="data:image/png;base64,%s" alt="avatar" />
+                    </div>
+                    <div class="clearfix"></div>
+                    <div class="about">
+                      <div class="name">%s</div>
+                      <div class="status"></div>
+                    </div>
+                  </div>
+              """ % (self.icon_base64, self.user_name)
+
         return Markup(
                 '<a href="'
                 + url_for("ContactGroupModelChatView.list", name=str(self.name))
-                + '">show chat</a>'
+                + '">' + s + '</a>'
                 )
 
     @staticmethod
     def is_not_active(p):
         return p.validate_time is None or p.validate_time < datetime.datetime.now()
 
+    def is_offline(self):
+        return self.status == 0
+
+    def is_active(self):
+        return not self.is_not_active(self)
+
     def active(self):
+        tooltip = ""
+        bottom_status = ""
         if self.is_not_active(self):
-            btn = '<button type="button" class="btn btn-warning btn-circle btn-lg"><i class="glyphicon glyphicon-off"></i></button>'
+            bottom_status = "danger"
+            tooltip = _("not active your account, please re-enable it")
 
         else:
-            btn = '<button type="button" class="btn btn-warning btn-circle btn-lg"><i class="glyphicon glyphicon-remove"></i></button>'
+            bottom_status = "secondary"
+            tooltip = _("no monitor user")
             if self.status is 1:
-                btn = '<button type="button" class="btn btn-info btn-circle btn-lg"><i class="glyphicon glyphicon-ok"></i></button>'
+                bottom_status = "info"
+                tooltip = _("monitoring user")
+
+        btn = '<button type="button" class="btn btn-%s btn-circle btn-sm"><i class="glyphicon glyphicon-ok" data-toggle="tooltip" data-placement="top" data-original-title="%s"></i></button>' % (bottom_status, tooltip)
             
         return Markup(btn)
 
@@ -96,9 +131,9 @@ class ProjectFiles(Model):
             return ""
 
         return Markup(
-            '<a href="'
+            '<a class="logout" href="'
             + url_for("LineFuncuntionView.logout", name=str(self.name))
-            + '">logout</a>'
+            + '">' + _("line logout") +'</a>'
         )
 
     def download(self):
@@ -144,10 +179,33 @@ class ProjectFiles(Model):
         if not self.login_qrcode_base64:
              return ""
 
+        img_str = self.login_qrcode_base64
+        #if self.is_offline() and self.is_active():
+        #        # gen image with base64 and with timestamp without permission
+        #        qr = qrcode.QRCode(
+        #                version=1,
+        #                error_correction=qrcode.constants.ERROR_CORRECT_L,
+        #                box_size=9,
+        #                border=2,
+        #                )
+        #        from app.v.quickfiles import s
+        #        url = url_for("s.g",  _external=True,
+        #            pid = str(self.id), 
+        #            t=str(datetime.datetime.now().timestamp()))
+        #        qr.add_data(url)
+        #        qr.make(fit=True)
+        #        img = qr.make_image()
+
+        #        buffered = BytesIO()
+        #        img.save(buffered, format="PNG")
+        #        img_str = base64.b64encode(buffered.getvalue())
+        #        img_str = "data:image/png;base64," + str(img_str, 'utf-8')
+        
         return Markup(
              #s + 
              #'<link href="' + url_for('static',filename='css/basic.css') + '?v=3" rel="stylesheet">' + 
-            '<div class="qr-code-container text-center"><img class="qr-code-'+str(self.id)+'" style="margin: 0 auto; padding:5%" src="'+self.login_qrcode_base64+'" class="img-responsive" alt="..."><div class="qr-code-centered"></div></div>'
+            #'<div class="qr-code-container text-center"><img class="qr-code-'+str(self.id)+'" style="margin: 0 auto; padding:5%" src="'+self.login_qrcode_base64+'" class="img-responsive" alt="..."><div class="qr-code-centered"></div></div>'
+            '<div class="qr-code-container text-center"><img class="qr-code-'+str(self.id)+'" style="margin: 0 auto; padding:5%" src="'+(img_str)+'" class="img-responsive" alt="..."><div class="qr-code-centered"></div></div>'
 
         )
 

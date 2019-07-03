@@ -1,3 +1,4 @@
+from flask_babel import lazy_gettext as _
 from flask_login import current_user
 from flask import (
     request,
@@ -8,7 +9,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.views import ModelView, CompactCRUDMixin
 from flask_appbuilder.actions import action
 from app.m.quickfiles import Project, ProjectFiles, LindFriend
-from app import appbuilder, db, socketio
+from app import appbuilder, db, socketio, app
 from flask_appbuilder import AppBuilder,expose,BaseView,has_access
 from flask_appbuilder.urltools import get_filter_args, get_order_args, get_page_args, get_page_size_args
 from flask_appbuilder.widgets import RenderTemplateWidget
@@ -135,15 +136,20 @@ class ProjectModelView(CompactCRUDMixin, ModelView):
 class ShowProjectFilesByUser(ModelView):
     datamodel = SQLAInterface(ProjectFiles)
 
-    label_columns = {"qrcode": "qrcode", "active": "active", "add": "add friend"}
+    label_columns = {"qrcode": "qrcode", 
+            "active": _("account active status"), 
+            "add": "add friend",
+            "description" : _("your line id"), 
+            "logout": _("line logout"),
+            "showchat": _("line monitor user")}
     include_columns = ["qrcode"]
     #def __init__ (self, s):
     #    self.datamodel = SQLAInterface(ProjectFiles, s)
     #add_columns = ["file", "description", "project"]
     #edit_columns = ["file", "description", "project"]
-    edit_columns = ["file", "description"]
+    edit_columns = ["description"]
     #list_columns = ["active", "logout", "add", "download"]
-    list_columns = ["active", "showchat", "logout", "download"]
+    list_columns = ["active", "showchat", "logout", "description"]
     show_columns = ["qrcode"]
 
     @has_access
@@ -179,7 +185,8 @@ class ShowProjectFilesByUser(ModelView):
         if count:
             pk = item[0].id
             if item[0].status:
-                self.show_columns = ["add_friend"]
+                pass
+                #self.show_columns = ["add_friend"]
         else:
             pk = -1
 
@@ -200,6 +207,7 @@ class ProjectFilesByUser(CompactCRUDMixin, ModelView):
     related_views = [ShowProjectFilesByUser]
     #_related_views = [ShowProjectFilesByUser()]
     datamodel = SQLAInterface(Project)
+    default_view = 'show'
 
     show_fieldsets = [
         ("Info", {"fields": ["user", "limit_qrcode"]}),
@@ -218,6 +226,24 @@ class ProjectFilesByUser(CompactCRUDMixin, ModelView):
         return current_user.id
 
     #base_filters = [['user_id', FilterEqualFunction, get_current_user_id]]
+    @expose("/show")
+    @has_access
+    def show(self):
+        pk = -1
+        filters = self.datamodel.get_filters()
+        filters.add_filter('user_id', FilterEqual, current_user.id)
+        count, item = self.datamodel.query(filters=filters, page_size=1)
+        if count:
+            pk = item[0].id
+
+        widgets = self._show(pk)
+        return self.render_template(
+            'show_for_projectfilesbyuser.html',
+            pk=pk,
+            title="",
+            widgets=widgets,
+            related_views=self._related_views,
+        )
 
     @expose("/list")
     @has_access
@@ -283,6 +309,49 @@ class ProjectFilesByUser(CompactCRUDMixin, ModelView):
             #related_views=self._related_views,
         )
 
+class s(CompactCRUDMixin, ModelView):
+    # show / get qrcode for shortend url
+    datamodel = SQLAInterface(Project)
+
+    @expose("/s/<pid>")
+    def s(self):
+        # set shortend url, only work for status = 0 and active
+        filters = self.datamodel.get_filters()
+        filters.add_filter('user_id', FilterEqual, current_user.id)
+        filters.add_filter('id', FilterEqual, pid)
+        count, item = self.datamodel.query(filters=filters, page_size=1)
+        if count:
+            item = item[0]
+            if item.is_offline() and item.is_active():
+                # gen image with base64 and with timestamp without permission
+                qr = qrcode.QRCode(
+                        version=1,
+                        error_correction=qrcode.constants.ERROR_CORRECT_L,
+                        box_size=10,
+                        border=4,
+                        )
+                qr.add_data(url_for("s.s", t=str(datetime.datetime.now().timestamp())))
+                qr.make(fit=True)
+                img = qr.make_image()
+
+                buffered = BytesIO()
+                img.save(buffered, format="PNG")
+                img_str = base64.b64encode(buffered.getvalue())
+                return "data:image/png;base64," + img_str
+
+        return ""
+
+    @expose("/g/<pid>")
+    def g(self):
+        filters = self.datamodel.get_filters()
+        filters.add_filter('user_id', FilterEqual, current_user.id)
+        filters.add_filter('id', FilterEqual, pid)
+        count, item = self.datamodel.query(filters=filters, page_size=1)
+        if count:
+            pass
+
+        return ""
+
 
 
 def get_line_id_by_current_user(s):
@@ -307,6 +376,8 @@ def resp(json):
         item = item[0]
         item.status = json['p']['is_alive']
         _datamodel.add(item)
+        if item.status is 1:
+            socketio.emit('message', {'action': 'add_friend', 'p': item.description}, namespace='/canary', room=item.name)
 
 socketio.on_event('resp', resp, namespace='/canary')
 
@@ -412,6 +483,15 @@ class LineFuncuntionView(ModelView):
                 line_id = get_line_id_by_current_user(self.datamodel.session)
             socketio.emit('message', {'action': 'logout', 'p': ''}, namespace='/canary', room=name)
             resp={'status': 0, 'msg': 'logout success'};
+
+            _datamodel = SQLAInterface(ProjectFiles, self.datamodel.session)
+            filters = _datamodel.get_filters()
+            filters.add_filter('name', FilterEqual, name)
+            count, item = _datamodel.query(filters=filters)
+            for i in item:
+                i.status = 0
+                _datamodel.add(i)
+
             #return redirect(self.route_base)
 
         widgets = self._list()
@@ -425,15 +505,18 @@ appbuilder.add_view(LineFuncuntionView, 'add friend', icon="fa-user-plus", categ
 appbuilder.add_link('logout',href='/linefuncuntion/logout', icon="fa-sign-out", category='Line')
 
 appbuilder.add_view(ProjectFile, "Add line monitor", icon="fa fa-qrcode", category="Line")
+#appbuilder.add_view(ProjectFilesByUser, "line function", icon="fa fa-qrcode", category="Line",
+#                    category_icon = "fa-envelope")
 appbuilder.add_view(ProjectFilesByUser, "line function", icon="fa fa-qrcode", category="Line",
                     category_icon = "fa-envelope")
 #appbuilder.add_view(
 #    ProjectFilesModelView, "List all", icon="fa-table", category="Projects"
 #)
-#appbuilder.add_link('Add line monitor', icon="fa-table", href='/index/hello', category='Projects')
+appbuilder.add_link('Line', icon="fa-user-plus", href='/projectfilesbyuser/show')
 appbuilder.add_view(ProjectModelView, "List All Qrcode group", icon="fa-table", category="Line")
 appbuilder.add_view(ProjectFilesModelView, "List All Qrcode", icon="fa-table", category="Line")
 appbuilder.add_view_no_menu(ProjectFilesModelView)
 appbuilder.add_view_no_menu(ShowProjectFilesByUser)
+#appbuilder.add_view_no_menu(s)
 
 db.create_all()

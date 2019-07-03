@@ -74,6 +74,8 @@ class ContactModelApi(ModelRestApi):
             return self.add_chats()
         elif action == "update_group":
             return self.update_group()
+        elif action == "update_user":
+            return self.update_user()
 
         return self.response_400(message="not support")
 
@@ -288,5 +290,58 @@ class ContactModelApi(ModelRestApi):
 
         return self.response(200, message=message)
 
+    def update_user(self):
+        ## post with json
+        #{
+        #   "rid": xx,
+        #   "action": "update_user",
+        #   "user":
+        #      {
+        #         "name": XX,
+        #         "icon_base64":
+        if not request.is_json:
+            return self.response_400(message="Request payload is not JSON")
+
+        user = request.json.get('user', None)
+        rid = request.json.get('rid', None)
+
+        if not user or not rid:
+            return self.response_400(message="Missing required parameter")
+
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(ProjectFiles)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('name', FilterEqual, str(rid))
+        count, item = _datamodel.query(filters=filters, page_size=1)
+
+        if count is 0:
+            return self.response_400(message=("Missing required parameter, rid %s" % rid))
+
+        item = item[0]
+        item.user_name = user['name']
+        item.icon_base64 = user['icon_base64']
+
+        _datamodel.add(item)
+
+        message = "warning"
+
+        try:
+            s.commit()
+            message = "success"
+        except IntegrityError as e:
+            message = "warning"
+            log.warning(LOGMSG_WAR_DBI_ADD_INTEGRITY.format(str(e)))
+            s.rollback()
+            if raise_exception:
+                raise e
+        except Exception as e:
+            message = str(sys.exc_info()[0]) + "danger"
+            log.exception(LOGMSG_ERR_DBI_ADD_GENERIC.format(str(e)))
+            s.rollback()
+            if raise_exception:
+                raise e
+
+        return self.response(200, message=message)
 
 appbuilder.add_api(ContactModelApi)

@@ -22,6 +22,12 @@ def on_leave(json, methods=['GET', 'POST']):
     #send(username + ' has left the room.', room=room)
 
 thread = None
+@app.route("/")
+def index(self):
+    print("VVV")
+    return "XXX"
+
+
 #def background_stuff():
 #     """ python code in main.py """
 #     print('In background_stuff')
