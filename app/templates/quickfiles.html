@@ -35,16 +35,21 @@
         var $img = $child.find('.qr-code-container > img');
         var src = $img.attr('src');
         $('.qr-code-container > img').attr('src', src);
-        setTimeout(reload_qrcode, 6000)
+        setTimeout(reload_qrcode, 1000)
       });
     }
-    setTimeout(reload_qrcode, 6000)
+    setTimeout(reload_qrcode, 1000)
     $('footer').remove();
     var $qrcode_reader_hint = $('.qrcode-reader-hint');
     var qrcode_reader_hint_h = $qrcode_reader_hint.height() + parseInt($qrcode_reader_hint.css('padding-top').slice(0, -2), 10) + parseInt($qrcode_reader_hint.css('padding-bottom').slice(0, -2), 10);
     $('.line-hint').height($(window).height() - qrcode_reader_hint_h - $('.line-hint').offset().top);
     var $navbar_inverse = $('.navbar.navbar-inverse');
     $navbar_inverse.find('.navbar-brand a').html('{{_("show your qrcode")}}').prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
+    $navbar_inverse.find('.navbar-brand a').on('click', function(e) {
+      e.preventDefault();
+      history.go(-1);
+      return false;
+    });
     //$navbar_inverse.find('button').empty().append('<span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>');
     //$('.navbar-brand').prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
   });

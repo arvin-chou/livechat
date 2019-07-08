@@ -512,7 +512,7 @@ appbuilder.add_view(ProjectFilesByUser, "line function", icon="fa fa-qrcode", ca
 #appbuilder.add_view(
 #    ProjectFilesModelView, "List all", icon="fa-table", category="Projects"
 #)
-appbuilder.add_link('Line', icon="fa-user-plus", href='/projectfilesbyuser/show')
+appbuilder.add_link('Line', label=_('monitor list'), icon="fa-user-plus", href='/projectfilesbyuser/show')
 appbuilder.add_view(ProjectModelView, "List All Qrcode group", icon="fa-table", category="Line")
 appbuilder.add_view(ProjectFilesModelView, "List All Qrcode", icon="fa-table", category="Line")
 appbuilder.add_view_no_menu(ProjectFilesModelView)

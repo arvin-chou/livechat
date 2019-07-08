@@ -128,7 +128,8 @@ $(document).ready(function() {
   var refresh_contactgroup = function() {
     var url = '{{url_for('ContactGroupModelChatView.list')}}';
     var name = $.fn.get_url_param('name');
-    url += '?name=' + name;
+    var me_id = $.fn.get_url_param('me_id');
+    url += '?name=' + name + '&me_id=' + me_id;
     var that = this;
     $.get(url, function(){
     }).done(function(msgs) {
@@ -145,6 +146,20 @@ $(document).ready(function() {
   };
 
   $.fn.refresh_contactgroup();
+
+  // for prevent page
+  var $navbar_inverse = $('.navbar.navbar-inverse');
+  $navbar_inverse.find('.navbar-brand a').prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
+  $navbar_inverse.find('.navbar-brand a').on('click', function(e) {
+    e.preventDefault();
+    if ($('.chat-history').is(':visible')) {
+      $('.fa.fa-times').trigger('click');
+    }
+    else {
+      history.go(-1);
+    }
+    return false;
+  });
 });
 
 </script>

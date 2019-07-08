@@ -20,6 +20,7 @@
   background: #6A6C75;
   width: 90%;
   font-size: 14px;
+  display: inline-block;
 }
 .people-list .fa-search {
   position: relative;
@@ -103,6 +104,7 @@
   padding: 30px 30px 20px;
   border-bottom: 2px solid white;
   overflow-y: scroll;
+  overflow-x: hidden;
   height: 575px;
 }
 .chat .chat-history ul{
@@ -117,17 +119,21 @@
 }
 .chat .chat-history .message {
   color: white;
-  padding: 18px 20px;
+  /*padding: 18px 20px;*/
+  padding: 5px 15px;
   line-height: 26px;
   font-size: 16px;
-  border-radius: 7px;
+  /*border-radius: 7px;*/
+  border-radius: 0 0 7px 7px;
   margin-bottom: 30px;
-  width: 90%;
+  /*width: 90%;*/
   position: relative;
+  display: inline-block;
 }
 .chat .chat-history .message:after {
   bottom: 100%;
-  left: 7%;
+  /*left: 7%;*/
+  left: 10px;
   border: solid transparent;
   content: " ";
   height: 0;
@@ -146,7 +152,7 @@
 }
 .chat .chat-history .other-message:after {
   border-bottom-color: #94C2ED;
-  left: 93%;
+  left: 78%;
 }
 .chat .chat-message {
   padding: 30px;

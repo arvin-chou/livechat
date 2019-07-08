@@ -7,7 +7,7 @@
 {% include 'appbuilder/general/confirm.html' %}
 {% include 'appbuilder/general/alert.html' %}
 <!-- https://codepen.io/drehimself/pen/KdXwxR -->
-<link href="{{url_for('static',filename='css/chat.css')}}?v=6" rel="stylesheet">
+<link href="{{url_for('static',filename='css/chat.css')}}?v=8" rel="stylesheet">
 
   <div class="chat-container clearfix">
     <div class="col-xs-12 col-sm-8 col-md-12 people-list" id="people-list">
@@ -246,7 +246,8 @@
       if (c['c_type'] == 2) {
         c['msg'] = "<img src='" + c['msg'] + "' >";
       }
-      if (c['me_id']) {
+      if (c['me_id'] == c['from_id']) {
+        // me
         chat_str = 
         '<li class="clearfix">'+
         '  <div class="message-data align-right">'+
@@ -260,12 +261,16 @@
         '</li>';
       }
       else {
+        // others
         //message_type = "other-message float-right";
         message_type = "my-message";
         chat_str = 
         '<li>'+
         ' <div class="message-data">'+
-        '   <span class="message-data-name"><i class="fa fa-circle online"></i>'+c['from_display_name']+'</span>'+
+        '   <div class="image-cropper">'+
+        '     <img class="profile-pic" src="data:image/png;base64,'+c['icon_base64']+'" alt="avatar" />'+
+        '   </div>'+
+        '   <span class="message-data-name"><!--<i class="fa fa-circle online"></i>-->'+c['from_display_name']+'</span>'+
         '   <span class="message-data-time" data-toggle="tooltip" data-placement="top" title="" data-original-title="'+t+'">'+c['t']+'</span>'+
         ' </div>'+
         ' <div class="message my-message">'+

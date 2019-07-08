@@ -20,7 +20,7 @@ class ContactGroup(Model):
     projectfiles_name = Column(String, ForeignKey("project_files.name"))
     projectfiles = relationship("ProjectFiles", backref=backref("ContactGroup", cascade="all, delete-orphan"), foreign_keys='ContactGroup.projectfiles_name')
     #contacts = relationship('Contact', back_populates = 'contact_group', lazy = True)
-    #icon_base64 = Column(String)
+    me_id = Column(String) # be monitored's user line id
 
     def __repr__(self):
         return self.name
@@ -41,7 +41,9 @@ class Contact(Model):
 
     #contact_group_id = Column(Integer)
     #contact_group_id = Column(Integer, ForeignKey('contact_group.id'))
-    #contact_group = relationship("ContactGroup", backref=backref("Contact", cascade="all, delete-orphan"))
+    contact_group = relationship("ContactGroup", backref=backref("Contact", cascade="all, delete-orphan"))
+    icon_base64 = Column(String)
+
     @declared_attr
     def contact_group_id(self):
         return Column(
@@ -66,5 +68,6 @@ class Contact(Model):
         out['me_id'] = self.me_id
         out['from_id'] = self.from_id
         out['c_type'] = self.c_type
+        out['icon_base64'] = self.icon_base64
         return json.dumps(out, ensure_ascii=False)
 

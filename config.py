@@ -19,6 +19,7 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(basedir, "app.db")
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.dialects.mysql import LONGTEXT
+
 engine = create_engine(SQLALCHEMY_DATABASE_URI)
 
 def add_column(engine, table_name, column):
@@ -39,11 +40,14 @@ def del_column(engine, table_name, column):
 #column= Column('login_qrcode_base64', String)
 #column= Column('user_name', String)
 #add_column(engine, 'project_files', column)
+#column= Column('me_id', String)
+#add_column(engine, 'contact_group', column)
+#add_column(engine, 'project_files', column)
 #column= Column('icon_base64', String)
 #add_column(engine, 'project_files', column)
 
 #del_column(engine, 'project', column)
-#column= Column('projectfiles_name', String)
+#column= Column('icon_base64', String)
 #add_column(engine, 'contact', column)
 #column= Column('contactgroup_id', Integer)
 #add_column(engine, 'project', column)
@@ -108,13 +112,13 @@ AUTH_TYPE = AUTH_DB
 # Babel config for translations
 # ---------------------------------------------------
 # Setup default language
-BABEL_DEFAULT_LOCALE = "en"
+BABEL_DEFAULT_LOCALE = "zh_TW"
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = "translations"
 # The allowed translation for you app
 LANGUAGES = {
     "zh_TW": {"flag": "tw", "name": "Taiwan"},
-    "en": {"flag": "gb", "name": "English"},
+    #"en": {"flag": "gb", "name": "English"},
     #"pt": {"flag": "pt", "name": "Portuguese"},
     #"pt_BR": {"flag": "br", "name": "Pt Brazil"},
     #"es": {"flag": "es", "name": "Spanish"},

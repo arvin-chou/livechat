@@ -53,6 +53,7 @@ class ProjectFiles(Model):
     validate_time = Column(DateTime)
     user_name = Column(String) # for be monitored display name
     icon_base64 = Column(String) # for be monitored image
+    me_id = Column(String) # for current monitor's line inner id
 
     def username(self):
         user = ''
@@ -68,6 +69,7 @@ class ProjectFiles(Model):
             return ""
 
         s = _('show chat')
+        s = ""
         if self.is_offline():
             pass
         else:
@@ -86,7 +88,8 @@ class ProjectFiles(Model):
 
         return Markup(
                 '<a href="'
-                + url_for("ContactGroupModelChatView.list", name=str(self.name))
+                + url_for("ContactGroupModelChatView.list", name=str(self.name),
+                me_id=str(self.me_id))
                 + '">' + s + '</a>'
                 )
 
@@ -128,7 +131,7 @@ class ProjectFiles(Model):
 
     def logout(self):
         if self.status is not 1:
-            return ""
+            return Markup("<a class='offline' href='#'></a>")
 
         return Markup(
             '<a class="logout" href="'

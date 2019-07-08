@@ -76,8 +76,8 @@ body {
 .navbar-inverse {
   background: #495171 !important;
 }
-.navbar-inverse a {
-  color: white;
+.navbar>.container .navbar-brand a, .navbar>.container .navbar-brand a:active {
+  color: white !important;
 }
 .navbar-inverse button {
   border-color: transparent !important;

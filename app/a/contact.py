@@ -83,12 +83,14 @@ class ContactModelApi(ModelRestApi):
         ## post with json
         #{
         #   "len":7,
+        #   "rid":,
         #   "chat":[
         #      {  },
         #      {  },
         #      {  },
         #      {
         #         "id":"u4ddf1308a8747a3f815cb2959c068ebf",
+        #         "me_id": xxx
         #         "title":[
         #            "5/6/2019,周小艾,9:21 PM"
         #         ],
@@ -98,6 +100,7 @@ class ContactModelApi(ModelRestApi):
         #               "chat":"五次",
         #               "t":"9:21 PM",
         #               "time":1559740894260
+        #               "icon_base64":
         #            },
         if not request.is_json:
             return self.response_400(message="Request payload is not JSON")
@@ -130,8 +133,9 @@ class ContactModelApi(ModelRestApi):
             _datamodel = SQLAInterface(ContactGroup)
             _datamodel.session = s
             filters = _datamodel.get_filters()
-            filters.add_filter('line_id', FilterEqual, cs['id'])
+            filters.add_filter('line_id', FilterEqual, cs['id']) # to
             filters.add_filter('projectfiles_name', FilterEqual, rid)
+            filters.add_filter('me_id', FilterEqual, cs['me_id'])
             filters.add_filter('user_id', FilterEqual, uid)
             count, item = _datamodel.query(filters=filters, page_size=0)
 
@@ -144,6 +148,7 @@ class ContactModelApi(ModelRestApi):
                 group.line_id = cs['id']
                 group.projectfiles_name = rid
                 group.name = cs['title']
+                group.me_id = cs['me_id']
                 group.user_id = uid
                 _datamodel.add(group)
                 id = group.id
@@ -156,8 +161,10 @@ class ContactModelApi(ModelRestApi):
                 _datamodel.session = s
                 filters = _datamodel.get_filters()
                 filters.add_filter('updated', FilterEqual, datetime.datetime.fromtimestamp(int(c['time']) / 1000))
-                filters.add_filter('line_id', FilterEqual, cs['id'])
+                filters.add_filter('contact_group_id', FilterEqual, id)
+                filters.add_filter('line_id', FilterEqual, cs['id']) # to
                 filters.add_filter('from_id', FilterEqual, c['from'])
+                filters.add_filter('me_id', FilterEqual, cs['me_id']) # could remove?
                 count, item = _datamodel.query(filters=filters, page_size=0)
 
                 if count is 0:
@@ -180,8 +187,9 @@ class ContactModelApi(ModelRestApi):
                     item.user_id = uid
                     item.contact_group_id = id
                     item.from_display_name = c['from_display_name']
+                    item.me_id =  cs['me_id']
                     item.from_id = c['from']
-                    item.me_id = c['me']
+                    item.icon_base64 = c['icon_base64']
                     item.c_type= c.get('type', 1)
 
                     s.add(item)
@@ -222,6 +230,7 @@ class ContactModelApi(ModelRestApi):
         #         "id":"u4ddf1308a8747a3f815cb2959c068ebf",
         #         "name": XX,
         #         "icon_base64":
+        #         "me_id":
         if not request.is_json:
             return self.response_400(message="Request payload is not JSON")
 
@@ -254,6 +263,7 @@ class ContactModelApi(ModelRestApi):
             filters = _datamodel.get_filters()
             filters.add_filter('line_id', FilterEqual, cs['id']) # to
             filters.add_filter('projectfiles_name', FilterEqual, rid)
+            filters.add_filter('me_id', FilterEqual, cs['me_id'])
             filters.add_filter('user_id', FilterEqual, uid)
             count, item = _datamodel.query(filters=filters, page_size=0)
 
@@ -268,6 +278,7 @@ class ContactModelApi(ModelRestApi):
             group.user_id = uid
             group.name = cs['name']
             group.icon_base64 = cs['icon_base64']
+            group.me_id  = cs['me_id']
             _datamodel.add(group)
 
         message = "warning"
@@ -299,6 +310,7 @@ class ContactModelApi(ModelRestApi):
         #      {
         #         "name": XX,
         #         "icon_base64":
+        #         "me": xx
         if not request.is_json:
             return self.response_400(message="Request payload is not JSON")
 
@@ -321,6 +333,7 @@ class ContactModelApi(ModelRestApi):
         item = item[0]
         item.user_name = user['name']
         item.icon_base64 = user['icon_base64']
+        item.me_id = user['me_id']
 
         _datamodel.add(item)
 

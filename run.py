@@ -1,4 +1,4 @@
-from app import app, socketio, IS_DEBUG
+from app import app, db, socketio, IS_DEBUG
 import time
 from threading import Thread
 from flask import Flask, render_template, session, request
@@ -22,11 +22,15 @@ def on_leave(json, methods=['GET', 'POST']):
     #send(username + ' has left the room.', room=room)
 
 thread = None
-@app.route("/")
-def index(self):
-    print("VVV")
-    return "XXX"
+#@app.route("/")
+#def index(self):
+#    print("VVV")
+#    return "XXX"
 
+#from flask.signals import request_finished
+#def expire_session(sender, response, **extra):
+#    db.session.expire_all()
+#request_finished.connect(expire_session, app)
 
 #def background_stuff():
 #     """ python code in main.py """

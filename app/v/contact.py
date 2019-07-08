@@ -37,9 +37,10 @@ class ContactModelView(ModelView):
                      'from_display_name': 'from_display_name',
                      'me_id': 'me_id',
                      'from_id': 'from_id',
-                     'c_type': 'c_type'
+                     'c_type': 'c_type',
+                     'icon_base64': 'icon_base64'
                      }
-    list_columns = ['id', 'from_display_name','msg', 'updated', 'me_id', 'from_id', 'c_type']
+    list_columns = ['id', 'from_display_name','msg', 'updated', 'me_id', 'from_id', 'c_type', 'icon_base64']
  
     show_fieldsets = [
                         (
@@ -61,6 +62,7 @@ class ContactGroupModelView(ModelView):
     @has_access
     def list(self):
         name = request.args.get('name', default = '-1', type = str)
+        me_id = request.args.get('me_id', default = '-1', type = str) # me_id means be monitored's line id
 
         s = self.datamodel.session
         _datamodel = SQLAInterface(ProjectFiles)
@@ -85,6 +87,7 @@ class ContactGroupModelView(ModelView):
             self._base_filters.clear_filters()
             self._base_filters.add_filter('user_id', FilterEqual, current_user.id)
             self._base_filters.add_filter('projectfiles_name', FilterEqual, name)
+            self._base_filters.add_filter('me_id', FilterEqual, me_id)
 
             self.list_columns = ['name', 'updated']
 

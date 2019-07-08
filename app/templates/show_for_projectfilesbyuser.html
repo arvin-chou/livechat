@@ -39,31 +39,98 @@
 
 <script type="text/javascript">
   $(document).ready(function() {
-    var is_rendered = false;
-    $('#modal-alert').on('show.bs.modal', function () {
-      if (!is_rendered) {
-        $('a>.fa-search').parent().each(function(){
-          this.dataset.originalTitle = "{{_("show your qrcode")}}"
-        });
-        $('[data-toggle="tooltip"]').tooltip();
-        is_rendered = true;
-      }
+    $('a>.fa-search').parent().each(function(){
+      this.title = this.dataset.originalTitle = "{{_("show your qrcode")}}"
     });
+
+    // for kw ask
+    {
+      var hide = 0;
+      var no_monitor = 0;
+      var no_active_nr = 0;
+      var online_nr = 0;
+      var $all_tr = $('#ShowProjectFilesByUser tbody tr');
+      var logoff_idx = $all_tr.find('.offline,.logout').parent().index();
+      var btn_idx = $all_tr.find('button').parent().index();
+
+      $('thead th:eq(' + logoff_idx + ')').hide();
+      $('thead th:eq(' + btn_idx + ')').hide();
+
+      $all_tr.each(function() {
+        var $this = $(this);
+
+        $this.find("td:eq('" + logoff_idx + "')").hide();
+        $this.find("td:eq('" + btn_idx + "')").hide();
+
+        if ($this.find('.btn-danger').length) {
+          $this.hide();
+          no_active_nr++;
+        }
+        else if ($this.find('.btn-secondary').length) {
+          $this.hide();
+          no_monitor++;
+        }
+        else {
+          var $p = $this.find('.fa-search').closest('a');
+          $this.find('.logout').html('').addClass('btn btn-sm btn-default').append('<i class="fa fa-trash"></i>').detach().insertBefore($p);
+          online_nr++;
+          //var $trash = $p.clone();
+          //$trash.find('.fa-search').removeClass('fa-search').addClass('fa-trash logout');
+          //$trash.insertBefore($p);
+          //$p.on('click', function(e) {
+          //});
+        }
+      });
+
+      if (no_monitor) {
+        var $add = $('<a href="#" class="btn btn-sm btn-primary" data-toggle="tooltip" rel="tooltip" title="" data-original-title="{{_('Add a new record')}}"> <i class="fa fa-plus"></i> </a>');
+        $('#ShowProjectFilesByUser .fa-arrow-left').closest('a').after($add).after('&nbsp;&nbsp;');
+        $add.off().on('click', function(e) {
+          if ($('tbody tr:visible').length >= no_monitor + online_nr) {
+            var $this = $(this);
+            $this.attr('disabled', 'disabled');
+            this.title = this.dataset.originalTitle = "";
+            return true;
+          }
+
+          $('#ShowProjectFilesByUser tbody tr:hidden').each(function() {
+            var $this = $(this);
+            if ($this.find('.btn-secondary').length) {
+              $this.show();
+              return false;
+            }
+          });
+        });
+      }
+
+      if (no_active_nr) {
+        var tip = "{{_("you have _ un-active account")}}";
+        tip = tip.replace('_', no_active_nr);
+        var $hint = $('<button type="button" class="btn btn-sm btn-danger">'+tip+'</button>');
+
+        $('#ShowProjectFilesByUser .well .pull-right').before($hint).after('&nbsp;&nbsp;');
+      }
+    }
 
     $('table a').off('click').on('click', function(e) {
       
-      var $target = $(e.target).closest('td');
+      //var $target = $(e.target).closest('td');
+      var $target = $(e.target);
+      if (!$target.is('a')) {
+        $target = $target.closest('a');
+      }
       var is_show = $target.find('.fa-search').length > 0;
       //console.log(is_show, $target.closest('tr').find('td').last().html());
       var $current_tr = $target.closest('tr');
       if (is_show) {
         var pass = true;
         var txt = "";
+        var line_id = $current_tr.find('td').last().html();
         if ($current_tr.find('button.btn-danger').length) {
           pass = !pass;
           txt = "{{_("please re-active your account")}}";
         }
-        else if ($current_tr.find('td').last().html() == 'None') {
+        else if (line_id == 'None' || !line_id) {
           pass = !pass;
           txt = "{{_("please fill up your line id")}}";
         }
@@ -78,19 +145,19 @@
         }
       }
 
-      var is_logout = $target.find('a').hasClass('logout');
+      var is_logout = $target.hasClass('logout');
       if (is_logout) {
         e.preventDefault();
 
         $('.modal-text').text("{{_("are you sure to logout?")}}");
         $('#modal-confirm').modal('show');
         $('#modal-confirm-ok').off().on('click', function(e) {
-          var logout_url = $target.find('a').attr('href');
+          var logout_url = $target.attr('href');
           $.ajax({
             type: "POST",
             url: logout_url,
             success: function(data) {
-              console.log(data);
+              //console.log(data);
               location.reload();
             }
           });
