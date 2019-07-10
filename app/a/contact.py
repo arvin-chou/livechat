@@ -150,6 +150,7 @@ class ContactModelApi(ModelRestApi):
                 group.name = cs['title']
                 group.me_id = cs['me_id']
                 group.user_id = uid
+                group.icon_base64 = cs['chat'][0]['icon_base64']
                 _datamodel.add(group)
                 id = group.id
 
@@ -167,7 +168,22 @@ class ContactModelApi(ModelRestApi):
                 filters.add_filter('me_id', FilterEqual, cs['me_id']) # could remove?
                 count, item = _datamodel.query(filters=filters, page_size=0)
 
-                if count is 0:
+                if count > 0:
+                    # update 
+                    is_dirty = False
+                    item = item[0]
+                    if item.from_display_name == "" and c['from_display_name'] != "":
+                        item.from_display_name = c['from_display_name']
+                        is_dirty = True
+
+                    if item.icon_base64 == "" and c['icon_base64'] != "":
+                        item.icon_base64 = c['icon_base64']
+                        is_dirty = True
+
+                    if is_dirty:
+                        s.add(item)
+
+                else:
                     is_updated = True
                     item = Contact()
                     #d = datetime()
