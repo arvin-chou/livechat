@@ -149,8 +149,15 @@ $(document).ready(function() {
 
   // for prevent page
   var $navbar_inverse = $('.navbar.navbar-inverse');
-  $navbar_inverse.find('.navbar-brand a').prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
-  $navbar_inverse.find('.navbar-brand a').on('click', function(e) {
+  var $navbar_brand = $navbar_inverse.find('.navbar-brand a');
+  $navbar_brand.prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
+  $navbar_brand.after('<i class="glyphicon glyphicon-refresh" style="color:white;"></i>');
+
+  $navbar_inverse.find('.glyphicon-refresh').on('click', function() {
+    location.reload(true);
+  });
+
+  $navbar_brand.find('.navbar-brand a').on('click', function(e) {
     e.preventDefault();
     if ($('.chat-history').is(':visible')) {
       $('.fa.fa-times').trigger('click');

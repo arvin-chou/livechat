@@ -76,6 +76,8 @@ class ContactModelApi(ModelRestApi):
             return self.update_group()
         elif action == "update_user":
             return self.update_user()
+        elif action == "update_friend_icon":
+            return self.update_friend_icon()
 
         return self.response_400(message="not support")
 
@@ -91,6 +93,7 @@ class ContactModelApi(ModelRestApi):
         #      {
         #         "id":"u4ddf1308a8747a3f815cb2959c068ebf",
         #         "me_id": xxx
+        #         "icon_base64": xxx,
         #         "title":[
         #            "5/6/2019,周小艾,9:21 PM"
         #         ],
@@ -150,7 +153,7 @@ class ContactModelApi(ModelRestApi):
                 group.name = cs['title']
                 group.me_id = cs['me_id']
                 group.user_id = uid
-                group.icon_base64 = cs['chat'][0]['icon_base64']
+                group.icon_base64 = cs.get('icon_base64', cs['chat'][0]['icon_base64'])
                 _datamodel.add(group)
                 id = group.id
 
@@ -372,5 +375,74 @@ class ContactModelApi(ModelRestApi):
                 raise e
 
         return self.response(200, message=message)
+
+    def update_friend_icon(self):
+        ## post with json
+        #{
+        #   "len":7,
+        #   "rid": xx,
+        #   "action": "update_friend_icon",
+        #   "me_id":,
+        #   "friends":
+        #      {
+        #         "xx":"xx",
+        if not request.is_json:
+            return self.response_400(message="Request payload is not JSON")
+
+        friends_len = request.json.get('len', None)
+        friends = request.json.get('friends', None)
+        me_id = request.json.get('me_id', None)
+        rid = request.json.get('rid', None)
+
+        if not friends_len or not friends or not rid or not me_id:
+            return self.response_400(message="Missing required parameter")
+
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(ProjectFiles)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('name', FilterEqual, str(rid))
+        count, item = _datamodel.query(filters=filters, page_size=1)
+
+        if count is 0:
+            return self.response_400(message=("Missing required parameter, rid %s" % rid))
+
+        uid = item[0].project.user_id
+
+        for k in friends:
+            _datamodel = SQLAInterface(Contact)
+            _datamodel.session = s
+            filters = _datamodel.get_filters()
+            filters.add_filter('name', FilterEqual, rid)
+            filters.add_filter('from_id', FilterEqual, k)
+            filters.add_filter('me_id', FilterEqual, me_id)
+            count, item = _datamodel.query(filters=filters, page_size=0)
+
+            id = -1;
+            if count:
+                item = item[0]
+                item.icon_base64 = friends[k]
+                _datamodel.add(item)
+
+        message = "warning"
+
+        try:
+            s.commit()
+            message = "success"
+        except IntegrityError as e:
+            message = "warning"
+            log.warning(LOGMSG_WAR_DBI_ADD_INTEGRITY.format(str(e)))
+            s.rollback()
+            if raise_exception:
+                raise e
+        except Exception as e:
+            message = str(sys.exc_info()[0]) + "danger"
+            log.exception(LOGMSG_ERR_DBI_ADD_GENERIC.format(str(e)))
+            s.rollback()
+            if raise_exception:
+                raise e
+
+        return self.response(200, message=message)
+
 
 appbuilder.add_api(ContactModelApi)

@@ -1,11 +1,14 @@
 from flask import (
     request,
+    redirect,
 )
 from flask import render_template
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView, ModelRestApi
 from flask_appbuilder import AppBuilder,expose,BaseView,has_access
 from flask_appbuilder.models.sqla.filters import FilterEqual 
+from flask_appbuilder.actions import action
+
 from flask_login import current_user
 from app.m.contact import ContactGroup, Contact
 from app.m.quickfiles import ProjectFiles
@@ -57,6 +60,12 @@ class ContactModelView(ModelView):
 class ContactGroupModelView(ModelView):
     datamodel = SQLAInterface(ContactGroup)
     related_views = [ContactModelView]
+
+    @action("muldelete", "Delete", "Delete all Really?", "fa-rocket", single=False)
+    def muldelete(self, items):
+        self.datamodel.delete_all(items)
+        self.update_redirect()
+        return redirect(self.get_redirect())
 
     @expose("/list/")
     @has_access

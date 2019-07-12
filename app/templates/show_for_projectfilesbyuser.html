@@ -108,8 +108,14 @@
         tip = tip.replace('_', no_active_nr);
         var $hint = $('<button type="button" class="btn btn-sm btn-danger">'+tip+'</button>');
 
-        $('#ShowProjectFilesByUser .well .pull-right').before($hint).after('&nbsp;&nbsp;');
+        //$('#ShowProjectFilesByUser .well .pull-right').before($hint).after('&nbsp;&nbsp;');
+        $('#ShowProjectFilesByUser .well .pull-right').before($hint);
+        $('#ShowProjectFilesByUser .well .pull-right').siblings('a.btn-default').remove();
       }
+
+      $('.btn-group-xs').css('display', 'block');
+      $('.btn-group-xs a').removeClass('btn btn-sm');
+      $('.btn-group-xs i').wrap('<button type="button" style="border-radius:50%;" class="btn btn-default btn-circle btn-xl"></button>');
     }
 
     $('table a').off('click').on('click', function(e) {

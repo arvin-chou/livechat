@@ -246,6 +246,10 @@
       if (c['c_type'] == 2) {
         c['msg'] = "<img src='" + c['msg'] + "' >";
       }
+      else if (c['c_type'] == 3) {
+        c['msg'] = "<img src='data:image/jpg;base64," + c['msg'] + "' >";
+      }
+
       if (c['me_id'] == c['from_id']) {
         // me
         chat_str = 
