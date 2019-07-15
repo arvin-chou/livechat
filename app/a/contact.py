@@ -214,8 +214,9 @@ class ContactModelApi(ModelRestApi):
                     s.add(item)
 
             if is_updated:
-                group.updated = latest_update 
-                s.add(group)
+                if group.updated is None or latest_update > group.updated:
+                    group.updated = latest_update 
+                    s.add(group)
 
 
         message = "warning"

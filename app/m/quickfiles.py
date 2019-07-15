@@ -38,6 +38,7 @@ class Project(AuditMixin, Model):
     #project_id = Column(Integer, ForeignKey('project_files.id'))
     #projectfiles = relationship('ProjectFiles', foreign_keys='Project.id', back_populates='project')
     #projectfiles = relationship('ProjectFiles', foreign_keys='Project.id')
+    projectfiles = relationship('ProjectFiles')
 
 
 class ProjectFiles(Model):
@@ -80,11 +81,11 @@ class ProjectFiles(Model):
                     </div>
                     <div class="clearfix"></div>
                     <div class="about">
-                      <div class="name">%s</div>
+                      <div class="name" data-me_id="%s" data-name="%s">%s</div>
                       <div class="status"></div>
                     </div>
                   </div>
-              """ % (self.icon_base64, self.user_name)
+              """ % (self.icon_base64, self.me_id, self.name, self.user_name)
 
         return Markup(
                 '<a href="'

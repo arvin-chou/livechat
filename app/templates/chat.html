@@ -250,6 +250,15 @@
         c['msg'] = "<img src='data:image/jpg;base64," + c['msg'] + "' >";
       }
 
+      if (c['from_display_name'].search('emojione') != -1) {
+        var $from_display_name = $('<div>' + c['from_display_name'] + '</div>');
+        var $emojione = $from_display_name.find('img');
+        var alt = $emojione.attr('alt');
+        $emojione.after('<span>' +alt+ '</span>');
+        $emojione.remove();
+        c['from_display_name'] = $from_display_name.html();
+      }
+
       if (c['me_id'] == c['from_id']) {
         // me
         chat_str = 

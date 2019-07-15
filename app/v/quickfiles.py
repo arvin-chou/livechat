@@ -5,6 +5,9 @@ from flask import (
     redirect,
     url_for
 )
+#from flask import g
+from flask import session
+from flask import json as flask_json
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.views import ModelView, CompactCRUDMixin
 from flask_appbuilder.actions import action
@@ -21,6 +24,8 @@ import time
 
 import logging
 log = logging.getLogger(__name__)
+g = {}
+g['status'] = {}
 
 class ProjectFilesModelView(ModelView):
     datamodel = SQLAInterface(ProjectFiles)
@@ -379,6 +384,15 @@ def resp(json):
         if item.status is 1:
             socketio.emit('message', {'action': 'add_friend', 'p': item.description}, namespace='/canary', room=item.name)
 
+    elif json['action'] == "sync_status":
+        global g
+        me_id = json.get('me_id', -1)
+        rid = json.get('rid', -1)
+        if me_id in g['status'] and rid != -1:
+            g['status'][me_id][rid] = {}
+            g['status'][me_id][rid]['status'] = json['p'].get('status', "")
+            g['status'][me_id][rid]['info'] = json['p'].get('info', "")
+
 socketio.on_event('resp', resp, namespace='/canary')
 
 def line_background_stuff():
@@ -390,6 +404,9 @@ def line_background_stuff():
          print('In background_stuff', t)
          time.sleep(10)
 
+#@app.before_request
+#def before_request():
+#    g.status = {}
 
 class LineFuncuntionView(ModelView):
     datamodel = SQLAInterface(LindFriend)
@@ -400,6 +417,102 @@ class LineFuncuntionView(ModelView):
     show_fieldsets = [
         ("Info", {"fields": ["line_id", "updated"]}),
     ]
+
+    @expose("/refresh_client", methods=['GET'])
+    def refresh_client(self):
+        # https://stackoverflow.com/questions/15974730/how-do-i-get-the-different-parts-of-a-flask-requests-url
+        to = request.args.get('to', default = request.url_root, type = str)
+        id = request.args.get('id', default = -1, type = int)
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(Project)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('user_id', FilterEqual, current_user.id)
+        count, item = _datamodel.query(filters=filters, page_size=1)
+
+        is_found = False 
+        p = {}
+        item = item[0]
+        for i in item.projectfiles:
+            if i.id == id:
+                is_found = True
+                p = i
+                break
+
+        if is_found and p.status is 0:
+            socketio.emit('message', {'action': 'refresh', 'p': ''}, namespace='/canary', room=p.name)
+        return redirect(to)
+
+    @expose("/status", methods=['GET'])
+    def check_status(self):
+        global g
+        name = request.args.get('name', default = '-1', type = str)
+        me_id = request.args.get('me_id', default = '-1', type = str) # me_id means be monitored's line id
+        if name == -1 or me_id == -1:
+            return '{"status": "error"}'
+
+        if me_id not in g['status']:
+            g['status'][me_id] = {}
+
+        is_found = False
+        if name in g['status'][me_id]:
+            is_found = True
+        else:
+            g['status'][me_id][name] = {}
+
+            s = self.datamodel.session
+            _datamodel = SQLAInterface(Project)
+            _datamodel.session = s
+            filters = _datamodel.get_filters()
+            filters.add_filter('user_id', FilterEqual, current_user.id)
+            count, item = _datamodel.query(filters=filters, page_size=1)
+            item = item[0]
+
+            for i in item.projectfiles:
+                if i.name == name:
+                    is_found = True
+                    break
+            
+            if not is_found:
+                return '{"status": "error", info: "not found"}'
+                    
+
+        if 'status' not in g['status'][me_id][name]:
+            g['status'][me_id][name]['status'] = ""
+
+        if 'info' not in g['status'][me_id][name]:
+            g['status'][me_id][name]['info'] = ""
+
+        s = g['status'][me_id][name]['status']
+        i = g['status'][me_id][name]['info']
+
+        socketio.emit('message', {'action': 'status', 'p': ''}, namespace='/canary', room=name)
+
+        if not isinstance(s, int):
+            s = -2;
+
+        stage = int(s)
+        if stage is -1:
+            i = _('start line setting syncing')
+        elif stage is 0:
+            i = _('starting line setting sync ')
+        elif stage is 1:
+            i = _('start sim chat with line official account')
+        elif stage is 2:
+            i = _('done for sim chat with line official account')
+        elif stage is 3:
+            i = _('start delete login message')
+        elif stage is 4:
+            i = _('done for delete login message')
+        elif stage is 5:
+            i = _('start add friend')
+        elif stage is 6:
+            i = _('start get monitor user info')
+        elif stage is 7:
+            i = _('start syncing history') + " " + i
+
+        return '{"status": %d, "info": "%s"}' % (stage, i)
+
 
     @expose("/add", methods=['GET'])
     @has_access

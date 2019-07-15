@@ -113,10 +113,46 @@
         $('#ShowProjectFilesByUser .well .pull-right').siblings('a.btn-default').remove();
       }
 
-      $('.btn-group-xs').css('display', 'block');
+      $('.btn-group-xs').css('display', 'block').closest('td').css('width', '15%');
+      $('.btn-group-xs').closest('tr').find('td:last').css('width', '10%');
       $('.btn-group-xs a').removeClass('btn btn-sm');
       $('.btn-group-xs i').wrap('<button type="button" style="border-radius:50%;" class="btn btn-default btn-circle btn-xl"></button>');
     }
+
+    var _get_live_status = function($this) {
+      var url = '{{url_for('LineFuncuntionView.check_status')}}';
+      var name = $this.find('.name').data('name')
+      var me_id = $this.find('.name').data('me_id')
+      url += '?name=' + name + '&me_id=' + me_id;
+      var that = this;
+      $.get(url, function(){
+      }).done(function(msgs) {
+        msg = JSON.parse(msgs);
+        if (msg.status != 8) {
+          $this.closest('td').addClass('loading-mask').find('span').first().html(msg.info);
+          setTimeout(_get_live_status.bind(this, $this), 1000);
+        }
+        else {
+          $this.closest('td').removeClass('loading-mask').find('span').first().remove();
+        }
+
+        //console.log(msgs);
+      });
+    };
+
+    var get_live_status = function($monitor_users) {
+      $monitor_users.each(function(){
+        var $this = $(this);
+        $this.closest('a').after('<span></span>');
+        _get_live_status($this.parent());
+      });
+    };
+
+    var $monitor_users = $('.image-cropper');
+    get_live_status($monitor_users);
+    //setInterval(function() {
+    //  get_live_status($monitor_users);
+    //}.bind(this), 1000);
 
     $('table a').off('click').on('click', function(e) {
       
@@ -178,6 +214,7 @@
         //});
         return false;
       }
+
     });
 
     $('[data-toggle="tooltip"]').tooltip();

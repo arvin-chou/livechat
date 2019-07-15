@@ -50,6 +50,13 @@
       history.go(-1);
       return false;
     });
+
+    var refresh_to = "{{url_for('LineFuncuntionView.refresh_client', to='-1')}}";
+    var path_params = location.href.split('?')[0].split('/');
+    refresh_to = refresh_to.replace(-1, location.href);
+    refresh_to += "&id=" + path_params[path_params.length-1];
+    $('.navbar-nav:not(".navbar-right")').prepend('<li><a tabindex="-1" href="'+refresh_to+'" ><i class="glyphicon glyphicon-refresh" style="color:white;"></i></a></li>');
+
     //$navbar_inverse.find('button').empty().append('<span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>');
     //$('.navbar-brand').prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
   });
