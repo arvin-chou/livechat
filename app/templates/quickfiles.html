@@ -47,7 +47,8 @@
     $navbar_inverse.find('.navbar-brand a').html('{{_("show your qrcode")}}').prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
     $navbar_inverse.find('.navbar-brand a').on('click', function(e) {
       e.preventDefault();
-      history.go(-1);
+      location.href = '{{url_for('ProjectFilesByUser.show')}}';
+      //history.go(-1);
       return false;
     });
 

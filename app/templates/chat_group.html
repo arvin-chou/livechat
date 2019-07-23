@@ -150,23 +150,87 @@ $(document).ready(function() {
   // for prevent page
   var $navbar_inverse = $('.navbar.navbar-inverse');
   var $navbar_brand = $navbar_inverse.find('.navbar-brand a');
-  $navbar_brand.prepend('<i class="glyphicon glyphicon-menu-left" style="color:white;"></i>');
-  $navbar_brand.after('<i class="glyphicon glyphicon-refresh" style="color:white;"></i>');
+  var project_name = $navbar_brand.html();
+  $navbar_brand.html('<div class="overme">'+project_name+'</div>');
+  var $title = $navbar_brand.find('.overme');
+  $navbar_brand.before('<i class="glyphicon glyphicon-menu-left" style="color:white;padding: 0 15px 0 0;"></i>');
+  $('.nav.navbar-nav:first').prepend('<i class="glyphicon glyphicon-refresh" style="color:white;padding: 0 20px;"></i>');
+  $('.nav.navbar-nav:first').prepend('<i class="glyphicon glyphicon-play-circle" style="color:white;padding: 0 20px;"></i>');
+  var name = $.fn.get_url_param('name');
+  var sync_group_url = "{{url_for('LineFuncuntionView.sync_group')}}?name=" + name;
 
-  $navbar_inverse.find('.glyphicon-refresh').on('click', function() {
+  $('footer').hide();
+  $('.panel').css('margin', '0px');
+
+  $('.glyphicon-refresh').on('click', function() {
     location.reload(true);
   });
 
-  $navbar_brand.find('.navbar-brand a').on('click', function(e) {
+  $('.glyphicon-play-circle').on('click', function() {
+    $.get(sync_group_url, function(){
+      }).done(function(msgs) {
+    });
+  });
+
+  $navbar_inverse.find('.glyphicon-menu-left').on('click', function(e) {
     e.preventDefault();
     if ($('.chat-history').is(':visible')) {
       $('.fa.fa-times').trigger('click');
+      $title.html(project_name);
     }
     else {
       history.go(-1);
     }
     return false;
   });
+
+  document.addEventListener('touchstart', handleTouchStart, false);
+  document.addEventListener('touchmove', handleTouchMove, false);
+
+  var xDown = null;
+  var yDown = null;
+
+  function getTouches(evt) {
+    return evt.touches ||             // browser API
+           evt.originalEvent.touches; // jQuery
+  }
+
+  function handleTouchStart(evt) {
+      const firstTouch = getTouches(evt)[0];
+      xDown = firstTouch.clientX;
+      yDown = firstTouch.clientY;
+  };
+
+  function handleTouchMove(evt) {
+    if ( ! xDown || ! yDown ) {
+      return;
+    }
+
+    var xUp = evt.touches[0].clientX;
+    var yUp = evt.touches[0].clientY;
+
+    var xDiff = xDown - xUp;
+    var yDiff = yDown - yUp;
+
+    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
+        if ( xDiff > 0 ) {
+          /* left swipe */
+          //$navbar_inverse.find('.glyphicon-menu-left').trigger('click');
+        } else {
+          /* right swipe */
+          $navbar_inverse.find('.glyphicon-menu-left').trigger('click');
+        }
+    } else {
+      if ( yDiff > 0 ) {
+        /* up swipe */
+      } else {
+        /* down swipe */
+      }
+    }
+    /* reset values */
+      xDown = null;
+    yDown = null;
+  };
 });
 
 </script>

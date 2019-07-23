@@ -97,6 +97,7 @@
             var $this = $(this);
             if ($this.find('.btn-secondary').length) {
               $this.show();
+              _get_logout_status($this);
               return false;
             }
           });
@@ -131,6 +132,23 @@
         if (msg.status != 8) {
           $this.closest('td').addClass('loading-mask').find('span').first().html(msg.info);
           setTimeout(_get_live_status.bind(this, $this), 1000);
+          var $show_friend_btn = $this.closest('tr').find('.fa-search').closest('a');
+          if (!$show_friend_btn.is(":disabled")) {
+            $show_friend_btn.attr('disabled', 'disabled')
+            $show_friend_btn.find('button').attr('disabled', 'disabled')
+            $show_friend_btn.on('click', function(e){ 
+              e.preventDefault();
+            });
+          }
+
+          var $show_add_friend_btn = $this.closest('tr').find('.fa-edit').closest('a');
+          if (!$show_add_friend_btn.is(":disabled")) {
+            $show_add_friend_btn.attr('disabled', 'disabled')
+            $show_add_friend_btn.find('button').attr('disabled', 'disabled')
+            $show_add_friend_btn.on('click', function(e){ 
+              e.preventDefault();
+            });
+          }
         }
         else {
           $this.closest('td').removeClass('loading-mask').find('span').first().remove();
@@ -139,6 +157,42 @@
         //console.log(msgs);
       });
     };
+
+    var _get_logout_status = function($this) {
+      var url = '{{url_for('LineFuncuntionView.heartbeat', name=-1)}}';
+
+      var $chat_link = $this.find('a.chat_link');
+      var name = $chat_link.data('name')
+      var me_id = $chat_link.data('me_id')
+      url = url.replace('-1', name);
+      url += '?me_id=' + me_id;
+      var that = this;
+
+      $.get(url, function(){
+      }).done(function(msgs) {
+        resp = msgs.resp;
+        var $show_friend_btn = $this.find('.fa-search').closest('a');
+        if (resp.is_find && resp.is_alive == -2) {
+          // lock login icon
+          if (!$show_friend_btn.find('button').is(":disabled")) {
+            $this.find('.chat_link').closest('td').addClass('loading-mask').find('a').after("<span>" + resp.info + "</span>");
+            $show_friend_btn.attr('disabled', 'disabled')
+            $show_friend_btn.find('button').attr('disabled', 'disabled')
+            $show_friend_btn.on('click', function(e){ 
+              e.preventDefault();
+            });
+          }
+          setTimeout(_get_logout_status.bind(this, $this), 1000);
+        }
+        else {
+          $this.find('.chat_link').closest('td').removeClass('loading-mask').find('span').remove();
+          $show_friend_btn.prop('disabled', false)
+          $show_friend_btn.find('button').prop('disabled', false)
+          $show_friend_btn.off('click');
+        }
+        //console.log(msgs);
+      });
+    }
 
     var get_live_status = function($monitor_users) {
       $monitor_users.each(function(){

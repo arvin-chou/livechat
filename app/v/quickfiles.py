@@ -9,7 +9,10 @@ from flask import (
 from flask import session
 from flask import json as flask_json
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder import ModelRestApi
 from flask_appbuilder.views import ModelView, CompactCRUDMixin
+from flask import jsonify
+
 from flask_appbuilder.actions import action
 from app.m.quickfiles import Project, ProjectFiles, LindFriend
 from app import appbuilder, db, socketio, app
@@ -26,6 +29,7 @@ import logging
 log = logging.getLogger(__name__)
 g = {}
 g['status'] = {}
+g['is_logout'] = {}
 
 class ProjectFilesModelView(ModelView):
     datamodel = SQLAInterface(ProjectFiles)
@@ -388,10 +392,33 @@ def resp(json):
         global g
         me_id = json.get('me_id', -1)
         rid = json.get('rid', -1)
+        if me_id not in g['status']:
+            g['status'][me_id] = {}
+
         if me_id in g['status'] and rid != -1:
             g['status'][me_id][rid] = {}
             g['status'][me_id][rid]['status'] = json['p'].get('status', "")
             g['status'][me_id][rid]['info'] = json['p'].get('info', "")
+
+        #if json['p'].get('status', "") == -2:
+        #    for i in g['status'].keys():
+        #        for j in g['status'][i].keys():
+        #            if j is rid:
+        #               print('force overwrite')
+        #               g['status'][i][rid] = {}
+        #               g['status'][i][rid]['status'] = json['p'].get('status', "")
+        #               g['status'][i][rid]['info'] = json['p'].get('info', "")
+        #               break
+    elif json['action'] == "ask_status":
+        #print('received my event: ' + str(json) + json['action'])
+        _datamodel = SQLAInterface(ProjectFiles, db.session)
+        filters = _datamodel.get_filters()
+        filters.add_filter('name', FilterEqual, json['rid'])
+        count, item = _datamodel.query(filters=filters, order_column='id', order_direction='desc', page_size=-1)
+        item = item[0]
+        print("current status is ", item.status)
+        socketio.emit('message', {'action': 'resp_status', 'p': item.status}, namespace='/canary', room=item.name)
+
 
 socketio.on_event('resp', resp, namespace='/canary')
 
@@ -408,7 +435,7 @@ def line_background_stuff():
 #def before_request():
 #    g.status = {}
 
-class LineFuncuntionView(ModelView):
+class LineFuncuntionView(ModelView, ModelRestApi):
     datamodel = SQLAInterface(LindFriend)
     route_base = '/linefuncuntion'
     default_view = 'add_form'
@@ -442,6 +469,26 @@ class LineFuncuntionView(ModelView):
         if is_found and p.status is 0:
             socketio.emit('message', {'action': 'refresh', 'p': ''}, namespace='/canary', room=p.name)
         return redirect(to)
+
+    @expose("/sync_group", methods=['GET'])
+    def sync_group(self):
+        name = request.args.get('name', default = -1, type = str)
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(Project)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('user_id', FilterEqual, current_user.id)
+        count, item = _datamodel.query(filters=filters, page_size=1)
+
+        if count:
+            item = item[0]
+            for i in item.projectfiles:
+                if i.name == name:
+                    socketio.emit('message', {'action': 'sync_group', 'p': ''}, namespace='/canary', room=i.name)
+                    return '{"status": "ok"}'
+
+        return '{"status": "error"}'
+
 
     @expose("/status", methods=['GET'])
     def check_status(self):
@@ -489,9 +536,11 @@ class LineFuncuntionView(ModelView):
         socketio.emit('message', {'action': 'status', 'p': ''}, namespace='/canary', room=name)
 
         if not isinstance(s, int):
-            s = -2;
+            s = -3;
 
         stage = int(s)
+        if stage is -2:
+            i = _('logouting')
         if stage is -1:
             i = _('start line setting syncing')
         elif stage is 0:
@@ -575,7 +624,35 @@ class LineFuncuntionView(ModelView):
     @expose('/heartbeat/<name>', methods=['POST', 'GET'])
     @has_access
     def heartbeat(self, name = -1):
-        _heartbeat(name)
+        me_id = request.args.get('me_id', default = '-1', type = str) # me_id means be monitored's line id
+        #LineFuncuntionView._heartbeat(name)
+
+        resp = {'is_find': 0, 'is_alive': 0}
+        _datamodel = SQLAInterface(ProjectFiles, db.session)
+        filters = _datamodel.get_filters()
+        filters.add_filter('name', FilterEqual, name)
+        count, item = _datamodel.query(filters=filters, order_column='id', order_direction='desc', page_size=-1)
+
+        if count:
+            item = item[0]
+            resp['is_alive'] = item.status
+            resp['is_find'] = 1
+
+            s = ""
+            i = ""
+            if me_id in g['status'] and name in g['status'][me_id]:
+                if 'status' in g['status'][me_id][name]:
+                    s = g['status'][me_id][name]['status']
+                elif 'info' in g['status'][me_id][name]:
+                    i = g['status'][me_id][name]['info']
+
+            resp['status'] = s
+            resp['info'] = i
+
+            if i == "":
+                resp['info'] = _('logouting')
+
+        return self.response(200, resp=resp)
         #resp={'status': 0, 'msg': ''}; # fail
         #if name and name is not -1:
         #    line_id = name
@@ -602,7 +679,9 @@ class LineFuncuntionView(ModelView):
             filters.add_filter('name', FilterEqual, name)
             count, item = _datamodel.query(filters=filters)
             for i in item:
-                i.status = 0
+                #global g
+                #g['is_logout'][name] = -2
+                i.status = -2
                 _datamodel.add(i)
 
             #return redirect(self.route_base)

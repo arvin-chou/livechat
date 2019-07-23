@@ -50,7 +50,7 @@ class ProjectFiles(Model):
     file = Column(FileColumn, nullable=True)
     description = Column(String(150)) # my line id
     login_qrcode_base64 = Column(String)
-    status = Column(Integer, default=0) # 0 is logout, 1 is online
+    status = Column(Integer, default=0) # 0 is logout, 1 is online, -2 is delete account and wait re-fresh qrcode
     validate_time = Column(DateTime)
     user_name = Column(String) # for be monitored display name
     icon_base64 = Column(String) # for be monitored image
@@ -71,7 +71,7 @@ class ProjectFiles(Model):
 
         s = _('show chat')
         s = ""
-        if self.is_offline():
+        if self.is_offline() or self.is_logouting():
             pass
         else:
             s = """ 
@@ -88,7 +88,7 @@ class ProjectFiles(Model):
               """ % (self.icon_base64, self.me_id, self.name, self.user_name)
 
         return Markup(
-                '<a href="'
+                '<a class="chat_link" data-me_id="'+self.me_id+'" data-name="'+self.name+'" href="'
                 + url_for("ContactGroupModelChatView.list", name=str(self.name),
                 me_id=str(self.me_id))
                 + '">' + s + '</a>'
@@ -100,6 +100,9 @@ class ProjectFiles(Model):
 
     def is_offline(self):
         return self.status == 0
+
+    def is_logouting(self):
+        return self.status == -2
 
     def is_active(self):
         return not self.is_not_active(self)
@@ -131,7 +134,7 @@ class ProjectFiles(Model):
                 )
 
     def logout(self):
-        if self.status is not 1:
+        if self.status is 0:
             return Markup("<a class='offline' href='#'></a>")
 
         return Markup(

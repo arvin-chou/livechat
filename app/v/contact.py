@@ -6,7 +6,7 @@ from flask import render_template
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView, ModelRestApi
 from flask_appbuilder import AppBuilder,expose,BaseView,has_access
-from flask_appbuilder.models.sqla.filters import FilterEqual 
+from flask_appbuilder.models.sqla.filters import FilterEqual, FilterGreater, FilterSmaller
 from flask_appbuilder.actions import action
 
 from flask_login import current_user
@@ -14,11 +14,12 @@ from app.m.contact import ContactGroup, Contact
 from app.m.quickfiles import ProjectFiles
 from app import appbuilder, db
 #import dateutil
+import datetime
 
 import logging
 log = logging.getLogger(__name__)
 
-class ContactModelView(ModelView):
+class ContactModelView(ModelView, ModelRestApi):
     datamodel = SQLAInterface(Contact)
 
     @expose("/list/")
@@ -35,6 +36,45 @@ class ContactModelView(ModelView):
         widgets = self._list()
         return self.render_template(
             self.list_template, title=self.list_title, widgets=widgets)
+
+    @expose("/getPeriod")
+    @has_access
+    def getPeriod(self):
+        period = request.args.get('period', default = -1, type = int)
+        groupId = request.args.get('groupId', default = -1, type = int) #
+        from_time = request.args.get('from_time', default = -1, type = int) #
+        to_time = request.args.get('to_time', default = -1, type = int) #
+        from_time = int(from_time/1000)
+        to_time = int(to_time/1000)
+
+        # check group id is valid
+        # get chat with limit
+        # return time
+
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(Contact)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('user_id', FilterEqual, current_user.id)
+        filters.add_filter('contact_group_id', FilterEqual, groupId)
+        filters.add_filter('updated', FilterGreater, datetime.datetime.fromtimestamp(from_time))
+        filters.add_filter('updated', FilterSmaller, datetime.datetime.fromtimestamp(to_time))
+        count, item = _datamodel.query(filters=filters, 
+                order_column="updated", 
+                order_direction="desc",
+                page_size=period)
+
+        if count == 0:
+            return self.response_400(message="no group found")
+
+        data = {
+                'from_time': item[len(item)-1].updated.timestamp(),
+                'to_time': item[0].updated.timestamp()
+                }
+
+        return self.response(200, data=data)
+
+
 
     label_columns = {'contact_group':'Contacts Group',
                      'from_display_name': 'from_display_name',

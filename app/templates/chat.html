@@ -7,7 +7,7 @@
 {% include 'appbuilder/general/confirm.html' %}
 {% include 'appbuilder/general/alert.html' %}
 <!-- https://codepen.io/drehimself/pen/KdXwxR -->
-<link href="{{url_for('static',filename='css/chat.css')}}?v=8" rel="stylesheet">
+<link href="{{url_for('static',filename='css/chat.css')}}?v=22" rel="stylesheet">
 
   <div class="chat-container clearfix">
     <div class="col-xs-12 col-sm-8 col-md-12 people-list" id="people-list">
@@ -30,12 +30,13 @@
         </div>
         <div class="chat-about">
           <div class="chat-with"></div>
-          <div class="chat-num-messages">already messages</div>
+          <div class="chat-num-messages"></div>
         </div>
-        <i class="fa fa-times"></i>
+        <i class="fa fa-times" style="display:none;"></i>
       </div> <!-- end chat-header -->
       
       <div class="chat-history">
+        <a id="load-more" class="load-more" title="Load More"></a>
         <ul>
           <!--
           <li class="clearfix">
@@ -122,6 +123,7 @@
       this.bindEvents();
       this.render();
       this.hookCloseChat();
+      this.loadHistoryEvent();
     },
     cacheDOM: function() {
       this.$chatHistory = $('.chat-history');
@@ -132,11 +134,18 @@
       this.$chat = $('#chat');
       this.$peopleList = $('#people-list');
       this.timeout_id = -1;
+      this.groupId = -1;
+      this.lineId = -1;
+      this.from_time = -1;
+      this.to_time = -1;
+      this.latest_id = -1;
+      this.load_history = false;
     },
     bindEvents: function() {
       this.$button.on('click', this.addMessage.bind(this));
       this.$textarea.on('keyup', this.addMessageEnter.bind(this));
-      this.$peopleList.on('click', this.showMessage.bind(this));
+      //this.$peopleList.on('click', this.showMessage.bind(this));
+      this.$peopleList.on('click', this.lazyMessage.bind(this));
     },
     render: function() {
       this.scrollToBottom();
@@ -179,6 +188,145 @@
         that.$chat.removeClass().addClass('col-xs-8 col-sm-6 col-md-8 chat').hide();
         that.$peopleList.removeClass().addClass('col-xs-12 col-sm-8 col-md-12 people-list').show();
       });
+    },
+    loadHistoryEvent: function() {
+      var contentLoading = false;
+      var contentHeight = 0;
+      var that = this;
+      var to_time = 0;
+      var latest_id = 0;
+
+      function loadProfile(id, text, user) {
+        to_time = that.to_time;
+        latest_id = that.latest_id;
+        that.to_time = that.from_time * 1000;
+        that.from_time = 0;
+        that.$chatHistory.addClass('loading-mask');
+        clearTimeout(this.timeout_id);
+        that.load_history = true;
+        that._lazyMessage(null, null, function() {
+          that.$chatHistory.scrollTop(that.$chatHistory[0].scrollHeight - contentHeight);
+          return {
+            to_time: to_time,
+            latest_id: latest_id
+          };
+        }, 'prepend');
+
+        contentLoading = false; // make this false once the content loaded from ajax call
+      }
+
+      $('#load-more').on('click', function(e) {
+        loadProfile();
+      });
+
+      this.$chatHistory.scroll(function () {
+        //console.log("curr", $(this).scrollTop(), $(this).innerHeight(), "("+($(this).scrollTop() + $(this).innerHeight())+")",$(this)[0].scrollHeight);
+        if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+          if(!contentLoading) {
+            //console.log("load more");
+            //loadMore();
+            contentLoading = true;
+            //$('#load-more').click();
+          }
+        }
+        else if ($(this).scrollTop() == 0) {
+          contentLoading = true;
+          contentHeight = $(this)[0].scrollHeight;
+          //console.log("load more previous, contentHeight", contentHeight);
+          if (!that.load_history) { 
+            $('#load-more').click();
+          }
+        }
+      });
+    },
+    setLazyUrl(groupId, lineId, from_time, to_time) {
+      this.groupId = groupId;
+      this.lineId = lineId;
+      this.from_time = from_time;
+      this.to_time = to_time;
+    },
+    _lazyMessage : function(event, url, cb, direct, is_monitor) {
+      if (!url) {
+        url = '{{url_for('ContactModelView.getPeriod')}}';
+        url += "?&_oc_ContactModelView=updated&_od_ContactModelView=asc&period=20" + "&groupId=" + this.groupId + "&lineId=" + this.lineId + "&from_time=" + this.from_time + "&to_time=" + this.to_time;
+      }
+
+      var that = this;
+
+      $.get(url, function(){
+      }).done(function(msgs) {
+        if (msgs.data && msgs.data.from_time) {
+          that.setLazyUrl.call(that, that.groupId, that.lineId, msgs.data.from_time, msgs.data.to_time);
+          that.querylatest(that.lineId, msgs.data.from_time, -1, that.groupId, msgs.data.to_time, 
+          function() {
+            var r;
+            if (cb) {
+              r = cb();
+            }
+
+            that.$chatHistory.removeClass('loading-mask');
+            return r;
+          }, direct, is_monitor);
+        }
+      });
+    },
+    lazyMessage : function(event) {
+      event.stopPropagation();
+      clearTimeout($.fn.refresh_contactgroup_id);
+      this.$peopleList.addClass('loading-mask');
+
+      var $li = $(event.target).closest('li');
+      var groupId = $li.data('id');
+      var lineId = $li.data('line_id');
+      var from_time = 0;
+      var to_time = (+ new Date());
+      var url = '{{url_for('ContactModelView.getPeriod')}}';
+      url += "?&_oc_ContactModelView=updated&_od_ContactModelView=asc&period=20" + "&groupId=" + groupId + "&lineId=" + lineId + "&from_time=" + (from_time) + "&to_time=" + (to_time);
+      var that = this;
+      that.$chatHistory.addClass('loading-mask');
+      clearTimeout(this.timeout_id);
+      that.$chatHistoryList.empty();
+      that.$chatWith.html($li.find('.name').html());
+
+      this.setLazyUrl(groupId, lineId, from_time, to_time);
+      this._lazyMessage(event, url, null, null, true);
+
+      //$.get(url, function(){
+      //}).done(function(msgs) {
+      //  if (msgs.data && msgs.data.from_time) {
+      //    that.querylatest(lineId, msgs.data.from_time, -1, groupId, msgs.data.to_time, 
+      //    function() {
+      //      that.$chatHistory.removeClass('loading-mask');
+      //    });
+      //  }
+      //  
+      //  var $chatHeader = $('.chat-header');
+      //  $chatHeader.find('.image-cropper').remove();
+      //  $chatHeader.prepend($li.find('.image-cropper').clone());
+      //  that.$chat.removeClass().addClass('col-xs-12 col-sm-8 col-md-12 chat').show();
+      //  that.$peopleList.removeClass().addClass('col-xs-4 col-sm-2 col-md-4 people-list').hide();
+
+      //  var group_name = $('.chat-header .chat-with').html().trim()
+      //  $('.chat-header').hide(); 
+      //  if (group_name) {
+      //    $('.navbar-brand a .overme').html(group_name);
+      //    $('.chat-history').height($(window).height() - $('.navbar-header').height());
+      //  }
+
+      //});
+
+      var $chatHeader = $('.chat-header');
+      $chatHeader.find('.image-cropper').remove();
+      $chatHeader.prepend($li.find('.image-cropper').clone());
+      that.$chat.removeClass().addClass('col-xs-12 col-sm-8 col-md-12 chat').show();
+      that.$peopleList.removeClass().addClass('col-xs-4 col-sm-2 col-md-4 people-list').hide();
+
+      var group_name = $('.chat-header .chat-with').html().trim()
+      $('.chat-header').hide(); 
+      if (group_name) {
+        $('.navbar-brand a .overme').html(group_name);
+        $('.chat-history').height($(window).height() - $('.navbar-header').height());
+      }
     },
     showMessage : function(event) {
       event.stopPropagation();
@@ -223,6 +371,14 @@
         $chatHeader.prepend($li.find('.image-cropper').clone());
         that.$chat.removeClass().addClass('col-xs-12 col-sm-8 col-md-12 chat').show();
         that.$peopleList.removeClass().addClass('col-xs-4 col-sm-2 col-md-4 people-list').hide();
+
+        var group_name = $('.chat-header .chat-with').html().trim()
+        $('.chat-header').hide(); 
+        if (group_name) {
+          $('.navbar-brand a .overme').html(group_name);
+          $('.chat-history').height($(window).height() - $('.navbar-header').height());
+        }
+
         that.scrollToBottom();
         that.querylatest(lineId, latest_time, latest_id, groupId);
       });
@@ -243,15 +399,24 @@
       var chat_str = null;
       //var message_type = "my-message";
       var message_type = "other-message float-right";
+      var image_class = "";
       if (c['c_type'] == 2) {
-        c['msg'] = "<img src='" + c['msg'] + "' >";
+        image_class = "img_transparent";
+        c['msg'] = "<img style='width:100%;' src='" + c['msg'] + "' >";
       }
       else if (c['c_type'] == 3) {
-        c['msg'] = "<img src='data:image/jpg;base64," + c['msg'] + "' >";
+        image_class = "img_transparent";
+        c['msg'] = "<img style='width:100%;' src='data:image/jpg;base64," + c['msg'] + "' >";
       }
+
+      c['msg'] = c['msg'].replace(/(?:\r\n|\r|\n)/g, '<br>');
+
 
       if (c['from_display_name'].search('emojione') != -1) {
         var $from_display_name = $('<div>' + c['from_display_name'] + '</div>');
+        if (-1 != $from_display_name.html().search('&lt;')) {
+          $from_display_name = $('<div>' + $from_display_name.text() + '</div>');
+        }
         var $emojione = $from_display_name.find('img');
         var alt = $emojione.attr('alt');
         $emojione.after('<span>' +alt+ '</span>');
@@ -262,14 +427,16 @@
       if (c['me_id'] == c['from_id']) {
         // me
         chat_str = 
-        '<li class="clearfix">'+
+        '<li class="clearfix" id="inner'+c['id']+'" chatId="'+c['from_id']+'">'+
         '  <div class="message-data align-right">'+
         '    <span class="message-data-time" ></span> &nbsp; &nbsp;'+
         '    <span class="message-data-name" data-toggle="tooltip" data-placement="top" title="" data-original-title="'+t+'">'+c['t']+'</span> <i class="fa fa-circle me"></i>'+
         '    '+
         '  </div>'+
-        '  <div class="message other-message float-right">'+
+        '  <div class="message-content float-right">'+
+        '    <div class="' +image_class+ ' float-right message other-message">'+
         c['msg'] +
+        '    </div>'+
         '  </div>'+
         '</li>';
       }
@@ -278,7 +445,7 @@
         //message_type = "other-message float-right";
         message_type = "my-message";
         chat_str = 
-        '<li>'+
+        '<li id="inner'+c['id']+'" chatId="'+c['from_id']+'">'+
         ' <div class="message-data">'+
         '   <div class="image-cropper">'+
         '     <img class="profile-pic" src="data:image/png;base64,'+c['icon_base64']+'" alt="avatar" />'+
@@ -286,8 +453,10 @@
         '   <span class="message-data-name"><!--<i class="fa fa-circle online"></i>-->'+c['from_display_name']+'</span>'+
         '   <span class="message-data-time" data-toggle="tooltip" data-placement="top" title="" data-original-title="'+t+'">'+c['t']+'</span>'+
         ' </div>'+
-        ' <div class="message my-message">'+
+        ' <div class="message-content ">'+
+        '    <div class="' +image_class+ ' message my-message">'+
         c['msg']+
+        '    </div>'+
         '  </div>'+
         '</li>';
       }
@@ -313,15 +482,41 @@
     scrollToBottom: function() {
        this.$chatHistory.scrollTop(this.$chatHistory[0].scrollHeight);
     },
-    querylatest: function(lineId, latest_time, latest_id, groupId) {
+    querylatest: function(lineId, latest_time, latest_id, groupId, to_time, cb, direct, is_monitor) {
       var url = '{{url_for('ContactModelView.list')}}';
       var off = new Date().getTimezoneOffset()
+      var _cb = cb;
       var formatted_time = latest_time;
       if (this.isFloat(latest_time)) {
         formatted_time = new Date(latest_time * 1000 - off * 60 * 1000 + 1).toISOString().replace('T', ' ').slice(0, -5);
       }
       url += "?_flt_1_updated=" + formatted_time + "&_flt_3_line_id=" + lineId + "&psize_ContactModelView=-1&_flt_0_contact_group=" + groupId;
+
+      this.latest_time = latest_time;
+      this.latest_id = latest_id;
+
+      var is_specified = false;
+
+      if (to_time) {
+        if (this.isFloat(to_time)) {
+          this.to_time = latest_time = to_time;
+          to_time = new Date(to_time * 1000 - off * 60 * 1000 + 1000).toISOString().replace('T', ' ').slice(0, -5);
+        }
+        is_specified = true;
+        url += "&_flt_2_updated=" + to_time;
+        url += "&_oc_ContactModelView=updated&_od_ContactModelView=asc";
+        to_time = 0;
+        _cb = cb;
+        cb = null;
+      }
+
       var that = this;
+
+      if (this.latest_time != latest_time && !is_specified) {
+        // dirty, return;
+        return;
+      }
+
       $.get(url, function(){
       }).done(function(msgs) {
         var $child = $(msgs);
@@ -338,23 +533,48 @@
         for (var i = 0; i < chats.length; i++) {
           var c = chats[i];
           c['id'] = parseInt(c['id'], 10);
-          if (c['id'] > latest_id) {
+          if (c['id'] > latest_id || !is_monitor) {
             latest_id = c['id'];
             chat_str += that.getshowMessage(c);
             //console.log(i, latest_id, c);
           }
+          else if (!$('#inner'+c['id']).length) {
+            chat_str += that.getshowMessage(c);
+          }
           //console.log('no update', i, c['id'], c);
         }
+        that.latest_id = latest_id;
 
         if (chat_str) {
-          that.$chatHistoryList.append(chat_str);
+          if ('prepend' == direct) {
+            that.$chatHistoryList.prepend(chat_str);
+          }
+          else {
+            that.$chatHistoryList.append(chat_str);
+            that.scrollToBottom();
+            console.log("buttom url", url, latest_id);
+          }
+
           $('[data-toggle="tooltip"]').tooltip();
-          that.scrollToBottom();
         }
 
-        that.timeout_id = setTimeout(function() {
-          that.querylatest(lineId, latest_time, latest_id, groupId);
-        }.bind(this), 1000);
+        var cache_data;
+        if (_cb) {
+          cache_data = _cb();
+          if (cache_data) {
+            latest_time = that.to_time = cache_data.to_time;
+            latest_id = that.latest_id = cache_data.latest_id;
+            that.load_history = false;
+          }
+        }
+
+        if (is_monitor) {
+            clearTimeout(that.timeout_id);
+            that.timeout_id = setTimeout(function() {
+            that.querylatest(lineId, latest_time, latest_id, groupId, to_time, null, null, true);
+          }.bind(this), 1000);
+        }
+
       });
     },
     getCurrentTime: function() {
