@@ -248,25 +248,32 @@
     _lazyMessage : function(event, url, cb, direct, is_monitor) {
       if (!url) {
         url = '{{url_for('ContactModelView.getPeriod')}}';
-        url += "?&_oc_ContactModelView=updated&_od_ContactModelView=asc&period=20" + "&groupId=" + this.groupId + "&lineId=" + this.lineId + "&from_time=" + this.from_time + "&to_time=" + this.to_time;
+        url += "?_oc_ContactModelView=updated&_od_ContactModelView=asc&period=20" + "&groupId=" + this.groupId + "&lineId=" + this.lineId + "&from_time=" + this.from_time + "&to_time=" + this.to_time;
       }
 
       var that = this;
 
-      $.get(url, function(){
-      }).done(function(msgs) {
-        if (msgs.data && msgs.data.from_time) {
-          that.setLazyUrl.call(that, that.groupId, that.lineId, msgs.data.from_time, msgs.data.to_time);
-          that.querylatest(that.lineId, msgs.data.from_time, -1, that.groupId, msgs.data.to_time, 
-          function() {
-            var r;
-            if (cb) {
-              r = cb();
-            }
+      $.ajax({
+        url: url,
+        type: 'GET',
+        error: function(msgs) {
+          that.$chatHistory.removeClass('loading-mask');
+          that.load_history = false;
+        },
+        success: function(msgs) { 
+          if (msgs.data && msgs.data.from_time) {
+            that.setLazyUrl.call(that, that.groupId, that.lineId, msgs.data.from_time, msgs.data.to_time);
+            that.querylatest(that.lineId, msgs.data.from_time, -1, that.groupId, msgs.data.to_time, 
+            function() {
+              var r;
+              if (cb) {
+                r = cb();
+              }
 
-            that.$chatHistory.removeClass('loading-mask');
-            return r;
-          }, direct, is_monitor);
+              that.$chatHistory.removeClass('loading-mask');
+              return r;
+            }, direct, is_monitor);
+          }
         }
       });
     },
@@ -281,7 +288,7 @@
       var from_time = 0;
       var to_time = (+ new Date());
       var url = '{{url_for('ContactModelView.getPeriod')}}';
-      url += "?&_oc_ContactModelView=updated&_od_ContactModelView=asc&period=20" + "&groupId=" + groupId + "&lineId=" + lineId + "&from_time=" + (from_time) + "&to_time=" + (to_time);
+      url += "?_oc_ContactModelView=updated&_od_ContactModelView=asc&period=20" + "&groupId=" + groupId + "&lineId=" + lineId + "&from_time=" + (from_time) + "&to_time=" + (to_time);
       var that = this;
       that.$chatHistory.addClass('loading-mask');
       clearTimeout(this.timeout_id);
@@ -289,7 +296,9 @@
       that.$chatWith.html($li.find('.name').html());
 
       this.setLazyUrl(groupId, lineId, from_time, to_time);
-      this._lazyMessage(event, url, null, null, true);
+      this._lazyMessage(event, url, function(){
+        that.scrollToBottom();
+      }, null, true);
 
       //$.get(url, function(){
       //}).done(function(msgs) {
@@ -412,17 +421,18 @@
       c['msg'] = c['msg'].replace(/(?:\r\n|\r|\n)/g, '<br>');
 
 
-      if (c['from_display_name'].search('emojione') != -1) {
-        var $from_display_name = $('<div>' + c['from_display_name'] + '</div>');
-        if (-1 != $from_display_name.html().search('&lt;')) {
-          $from_display_name = $('<div>' + $from_display_name.text() + '</div>');
-        }
-        var $emojione = $from_display_name.find('img');
-        var alt = $emojione.attr('alt');
-        $emojione.after('<span>' +alt+ '</span>');
-        $emojione.remove();
-        c['from_display_name'] = $from_display_name.html();
-      }
+      c['from_display_name'] = $.fn.replace_emojione(c['from_display_name']);
+      //if (c['from_display_name'].search('emojione') != -1) {
+      //  var $from_display_name = $('<div>' + c['from_display_name'] + '</div>');
+      //  if (-1 != $from_display_name.html().search('&lt;')) {
+      //    $from_display_name = $('<div>' + $from_display_name.text() + '</div>');
+      //  }
+      //  var $emojione = $from_display_name.find('img');
+      //  var alt = $emojione.attr('alt');
+      //  $emojione.after('<span>' +alt+ '</span>');
+      //  $emojione.remove();
+      //  c['from_display_name'] = $from_display_name.html();
+      //}
 
       if (c['me_id'] == c['from_id']) {
         // me
@@ -532,9 +542,13 @@
         var chat_str = "";
         for (var i = 0; i < chats.length; i++) {
           var c = chats[i];
+          var t = (new Date(c['updated'])).getTime();
           c['id'] = parseInt(c['id'], 10);
-          if (c['id'] > latest_id || !is_monitor) {
-            latest_id = c['id'];
+          //if (c['id'] > latest_id || !is_monitor) 
+          if (t > latest_id || !is_monitor) 
+          {
+            latest_id = t;
+            //latest_id = c['id'];
             chat_str += that.getshowMessage(c);
             //console.log(i, latest_id, c);
           }

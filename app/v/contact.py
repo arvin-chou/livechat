@@ -146,7 +146,7 @@ class ContactGroupModelView(ModelView):
 
         else:
             self._base_filters.clear_filters()
-            self.list_columns = ['name', 'updated', 'user_id']
+            self.list_columns = ['name', 'me_id', 'projectfiles_name', 'user_id', 'updated']
 
         if self.__class__.__name__ is 'ContactGroupModelChatView':
             self.formatters_columns = {'updated': lambda x: x.strftime('%p %I:%M').lstrip("0").replace(" 0", "") if x is not None else ""}
@@ -167,7 +167,7 @@ class ContactGroupModelView(ModelView):
             self.list_template, title=self.list_title, widgets=widgets)
 
     #base_filters = [['user_id', FilterEqual, id]]
-    search_columns = ['user', 'name', 'line_id', 'updated']
+    search_columns = ['user', 'name', 'line_id', 'updated', 'me_id']
     list_columns = ['name', 'updated', 'user_id']
     show_columns = ['name', 'Contact']
     #add_fieldsets = [

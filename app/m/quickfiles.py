@@ -233,28 +233,28 @@ class LindFriend(AuditMixin, Model):
 
 
 #@event.listens_for(ProjectFiles, 'after_insert')
-@event.listens_for(ProjectFiles, 'after_update')
-def receive_after_insert_update(mapper, connection, target):
-    "listen for the 'after_delete' event"
-    #log.error("target", target, target.file)
-    if target.file:
-        file_abs_path = app.config['IMG_UPLOAD_FOLDER'] + target.file
-        #log.error("target", target.file, file_abs_path)
-        if op.exists(file_abs_path):
-            #log.error("target", target, target.file)
-            d = decode(Image.open(file_abs_path))
-            #>>> decode(Image.open('pyzbar/tests/code128.png'))
-            #[Decoded(data=b'http://line.me/ti/p/aHVI-uK54_', type='QRCODE', rect=Rect(left=192, top=421, width=291, height=291), polygon=[Point(x=192, y=421), Point(x=192, y=712), Point(x=483, y=712), Point(x=483, y=421)])]
-            qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=4,
-                    )
-            qr.add_data(d[0].data)
-            qr.make(fit=True)
-            img = qr.make_image()
-            img.save(file_abs_path)
+#@event.listens_for(ProjectFiles, 'after_update')
+#def receive_after_insert_update(mapper, connection, target):
+#    "listen for the 'after_delete' event"
+#    #log.error("target", target, target.file)
+#    if target.file:
+#        file_abs_path = app.config['IMG_UPLOAD_FOLDER'] + target.file
+#        #log.error("target", target.file, file_abs_path)
+#        if op.exists(file_abs_path):
+#            #log.error("target", target, target.file)
+#            d = decode(Image.open(file_abs_path))
+#            #>>> decode(Image.open('pyzbar/tests/code128.png'))
+#            #[Decoded(data=b'http://line.me/ti/p/aHVI-uK54_', type='QRCODE', rect=Rect(left=192, top=421, width=291, height=291), polygon=[Point(x=192, y=421), Point(x=192, y=712), Point(x=483, y=712), Point(x=483, y=421)])]
+#            qr = qrcode.QRCode(
+#                    version=1,
+#                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+#                    box_size=10,
+#                    border=4,
+#                    )
+#            qr.add_data(d[0].data)
+#            qr.make(fit=True)
+#            img = qr.make_image()
+#            img.save(file_abs_path)
 
 @event.listens_for(ProjectFiles, 'after_delete')
 def receive_after_delete(mapper, connection, target):

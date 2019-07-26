@@ -43,6 +43,71 @@
       this.title = this.dataset.originalTitle = "{{_("show your qrcode")}}"
     });
 
+    var _get_live_status = function($this) {
+      var url = '{{url_for('LineFuncuntionView.check_status')}}';
+      var name = $this.find('.name').data('name')
+      var me_id = $this.find('.name').data('me_id')
+      url += '?name=' + name + '&me_id=' + me_id;
+      var that = this;
+      $this.closest('td').addClass('loading-mask');
+      $.get(url, function(){
+      }).done(function(msgs) {
+        msg = JSON.parse(msgs);
+        if (msg.status != 8) {
+          $this.closest('td').addClass('loading-mask').find('span').first().html(msg.info);
+          var $a_chat_link = $this.closest('tr').find('.chat_link');
+          var $name = $a_chat_link.find('.name');
+          $name.data('me_id', msg.me_id);
+          $name.html(msg.user_name);
+          $a_chat_link.find('img').attr('src', 'data:image/png;base64,' + msg.icon_base64);
+          var chat_link = '{{url_for("ContactGroupModelChatView.list")}}';
+          chat_link += "?name=" + name;
+          chat_link += "&me_id=" + msg.me_id;
+          $a_chat_link.attr('href', chat_link);
+
+          setTimeout(_get_live_status.bind(this, $this), 5000);
+
+          var $show_friend_btn = $this.closest('tr').find('.fa-search').closest('a');
+          if (!$show_friend_btn.is(":disabled")) {
+            $show_friend_btn.attr('disabled', 'disabled')
+            $show_friend_btn.find('button').attr('disabled', 'disabled')
+            $show_friend_btn.on('click', function(e){ 
+              e.preventDefault();
+            });
+          }
+
+          var $show_add_friend_btn = $this.closest('tr').find('.fa-edit').closest('a');
+          if (!$show_add_friend_btn.is(":disabled")) {
+            $show_add_friend_btn.attr('disabled', 'disabled')
+            $show_add_friend_btn.find('button').attr('disabled', 'disabled')
+            $show_add_friend_btn.on('click', function(e){ 
+              e.preventDefault();
+            });
+          }
+        }
+        else {
+          $this.closest('td').removeClass('loading-mask').find('span').first().remove();
+        }
+
+        //console.log(msgs);
+      });
+    };
+
+
+    var get_live_status = function($monitor_users) {
+      $monitor_users.each(function(){
+        var $this = $(this);
+        $this.closest('a').after('<span></span>');
+        _get_live_status($this.parent());
+      });
+    };
+
+    var do_get_live_status = function() {
+      var $monitor_users = $('.image-cropper');
+      get_live_status($monitor_users);
+    };
+    //do_get_live_status();
+
     // for kw ask
     {
       var hide = 0;
@@ -82,6 +147,10 @@
         }
       });
 
+      if (online_nr) {
+        do_get_live_status();
+      }
+
       if (no_monitor) {
         var $add = $('<a href="#" class="btn btn-sm btn-primary" data-toggle="tooltip" rel="tooltip" title="" data-original-title="{{_('Add a new record')}}"> <i class="fa fa-plus"></i> </a>');
         $('#ShowProjectFilesByUser .fa-arrow-left').closest('a').after($add).after('&nbsp;&nbsp;');
@@ -97,6 +166,7 @@
             var $this = $(this);
             if ($this.find('.btn-secondary').length) {
               $this.show();
+              $this.find('.chat_link').closest('td').find('a').after("<span></span>");
               _get_logout_status($this);
               return false;
             }
@@ -120,44 +190,6 @@
       $('.btn-group-xs i').wrap('<button type="button" style="border-radius:50%;" class="btn btn-default btn-circle btn-xl"></button>');
     }
 
-    var _get_live_status = function($this) {
-      var url = '{{url_for('LineFuncuntionView.check_status')}}';
-      var name = $this.find('.name').data('name')
-      var me_id = $this.find('.name').data('me_id')
-      url += '?name=' + name + '&me_id=' + me_id;
-      var that = this;
-      $.get(url, function(){
-      }).done(function(msgs) {
-        msg = JSON.parse(msgs);
-        if (msg.status != 8) {
-          $this.closest('td').addClass('loading-mask').find('span').first().html(msg.info);
-          setTimeout(_get_live_status.bind(this, $this), 1000);
-          var $show_friend_btn = $this.closest('tr').find('.fa-search').closest('a');
-          if (!$show_friend_btn.is(":disabled")) {
-            $show_friend_btn.attr('disabled', 'disabled')
-            $show_friend_btn.find('button').attr('disabled', 'disabled')
-            $show_friend_btn.on('click', function(e){ 
-              e.preventDefault();
-            });
-          }
-
-          var $show_add_friend_btn = $this.closest('tr').find('.fa-edit').closest('a');
-          if (!$show_add_friend_btn.is(":disabled")) {
-            $show_add_friend_btn.attr('disabled', 'disabled')
-            $show_add_friend_btn.find('button').attr('disabled', 'disabled')
-            $show_add_friend_btn.on('click', function(e){ 
-              e.preventDefault();
-            });
-          }
-        }
-        else {
-          $this.closest('td').removeClass('loading-mask').find('span').first().remove();
-        }
-
-        //console.log(msgs);
-      });
-    };
-
     var _get_logout_status = function($this) {
       var url = '{{url_for('LineFuncuntionView.heartbeat', name=-1)}}';
 
@@ -167,22 +199,23 @@
       url = url.replace('-1', name);
       url += '?me_id=' + me_id;
       var that = this;
+      $this.find('.chat_link').closest('td').addClass('loading-mask');
 
       $.get(url, function(){
       }).done(function(msgs) {
         resp = msgs.resp;
         var $show_friend_btn = $this.find('.fa-search').closest('a');
         if (resp.is_find && resp.is_alive == -2) {
+          $this.find('.chat_link').closest('td').addClass('loading-mask').find('span').html(resp.info);
           // lock login icon
           if (!$show_friend_btn.find('button').is(":disabled")) {
-            $this.find('.chat_link').closest('td').addClass('loading-mask').find('a').after("<span>" + resp.info + "</span>");
             $show_friend_btn.attr('disabled', 'disabled')
             $show_friend_btn.find('button').attr('disabled', 'disabled')
             $show_friend_btn.on('click', function(e){ 
               e.preventDefault();
             });
           }
-          setTimeout(_get_logout_status.bind(this, $this), 1000);
+          setTimeout(_get_logout_status.bind(this, $this), 5000);
         }
         else {
           $this.find('.chat_link').closest('td').removeClass('loading-mask').find('span').remove();
@@ -194,16 +227,6 @@
       });
     }
 
-    var get_live_status = function($monitor_users) {
-      $monitor_users.each(function(){
-        var $this = $(this);
-        $this.closest('a').after('<span></span>');
-        _get_live_status($this.parent());
-      });
-    };
-
-    var $monitor_users = $('.image-cropper');
-    get_live_status($monitor_users);
     //setInterval(function() {
     //  get_live_status($monitor_users);
     //}.bind(this), 1000);

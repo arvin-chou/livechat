@@ -58,9 +58,13 @@ $(document).ready(function() {
     var delete_idxs = [];
 
     $old_eles.each(function(){ 
-      var line_id = $(this).data('line_id'); 
+      var $this = $(this);
+      var display_name = $.fn.replace_emojione($(this).find('.name').html());
+      var line_id = $this.data('line_id'); 
       var order_id = line_ids.indexOf(line_id);
-      $(this).data('order_id', order_id);
+
+      $this.find('.name').html(display_name);
+      $this.data('order_id', order_id);
       delete_idxs.push(order_id);
     });
 
@@ -145,6 +149,23 @@ $(document).ready(function() {
     }.bind(this), 1000);
   };
 
+  $.fn.replace_emojione = function(from_display_name) {
+    var name = from_display_name; 
+    if (from_display_name.search('emojione') != -1) {
+      var $from_display_name = $('<div>' + from_display_name + '</div>');
+      if (-1 != $from_display_name.html().search('&lt;')) {
+        $from_display_name = $('<div>' + $from_display_name.text() + '</div>');
+      }
+      var $emojione = $from_display_name.find('img');
+      var alt = $emojione.attr('alt');
+      $emojione.after('<span>' +alt+ '</span>');
+      $emojione.remove();
+      name = $from_display_name.html();
+    }
+
+    return name;
+  }
+
   $.fn.refresh_contactgroup();
 
   // for prevent page
@@ -154,8 +175,8 @@ $(document).ready(function() {
   $navbar_brand.html('<div class="overme">'+project_name+'</div>');
   var $title = $navbar_brand.find('.overme');
   $navbar_brand.before('<i class="glyphicon glyphicon-menu-left" style="color:white;padding: 0 15px 0 0;"></i>');
-  $('.nav.navbar-nav:first').prepend('<i class="glyphicon glyphicon-refresh" style="color:white;padding: 0 20px;"></i>');
-  $('.nav.navbar-nav:first').prepend('<i class="glyphicon glyphicon-play-circle" style="color:white;padding: 0 20px;"></i>');
+  $('.nav.navbar-nav:first').prepend('<li><a href="#"><i class="glyphicon glyphicon-refresh" style="color:white;padding: 0 0px;">&nbsp;{{_('reload this page')}}</i></a></li>');
+  $('.nav.navbar-nav:first').prepend('<li><a href="#"><i class="glyphicon glyphicon-play-circle" style="color:white;padding: 0 0px;">&nbsp;{{_('force sync to server')}}</i></a></li>');
   var name = $.fn.get_url_param('name');
   var sync_group_url = "{{url_for('LineFuncuntionView.sync_group')}}?name=" + name;
 
@@ -169,6 +190,7 @@ $(document).ready(function() {
   $('.glyphicon-play-circle').on('click', function() {
     $.get(sync_group_url, function(){
       }).done(function(msgs) {
+        ab_alert("ok");
     });
   });
 

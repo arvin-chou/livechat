@@ -292,6 +292,7 @@ class ContactModelApi(ModelRestApi):
                 group = item[0]
             else:
                 group = ContactGroup()
+                print("VVV", filters)
 
             group.line_id = cs['id'] # to
             group.projectfiles_name = rid

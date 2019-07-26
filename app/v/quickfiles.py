@@ -495,6 +495,8 @@ class LineFuncuntionView(ModelView, ModelRestApi):
         global g
         name = request.args.get('name', default = '-1', type = str)
         me_id = request.args.get('me_id', default = '-1', type = str) # me_id means be monitored's line id
+        icon_base64 = ""
+
         if name == -1 or me_id == -1:
             return '{"status": "error"}'
 
@@ -503,27 +505,34 @@ class LineFuncuntionView(ModelView, ModelRestApi):
 
         is_found = False
         if name in g['status'][me_id]:
-            is_found = True
+            pass
         else:
             g['status'][me_id][name] = {}
 
-            s = self.datamodel.session
-            _datamodel = SQLAInterface(Project)
-            _datamodel.session = s
-            filters = _datamodel.get_filters()
-            filters.add_filter('user_id', FilterEqual, current_user.id)
-            count, item = _datamodel.query(filters=filters, page_size=1)
-            item = item[0]
+        s = self.datamodel.session
+        _datamodel = SQLAInterface(Project)
+        _datamodel.session = s
+        filters = _datamodel.get_filters()
+        filters.add_filter('user_id', FilterEqual, current_user.id)
+        count, item = _datamodel.query(filters=filters, page_size=1)
+        item = item[0]
 
-            for i in item.projectfiles:
-                if i.name == name:
-                    is_found = True
-                    break
-            
-            if not is_found:
-                return '{"status": "error", info: "not found"}'
-                    
+        for i in item.projectfiles:
+            if i.name == name:
+                is_found = True
+                icon_base64 = i.icon_base64
+                user_name = i.user_name
+                me_id = i.me_id
 
+                if me_id not in g['status']:
+                    # change login
+                    g['status'][me_id] = {}
+                    g['status'][me_id][name] = {}
+                break
+        
+        if not is_found:
+            return '{"status": "error", info: "not found"}'
+                
         if 'status' not in g['status'][me_id][name]:
             g['status'][me_id][name]['status'] = ""
 
@@ -560,7 +569,8 @@ class LineFuncuntionView(ModelView, ModelRestApi):
         elif stage is 7:
             i = _('start syncing history') + " " + i
 
-        return '{"status": %d, "info": "%s"}' % (stage, i)
+        return '{"status": %d, "info": "%s", "me_id": "%s", "user_name": "%s", "icon_base64": "%s"}' % \
+            (stage, i, me_id, user_name, icon_base64)
 
 
     @expose("/add", methods=['GET'])
