@@ -422,6 +422,8 @@
 
 
       c['from_display_name'] = $.fn.replace_emojione(c['from_display_name']);
+
+      var hide_image_style = c['icon_base64'] ? "" : "display:none;";
       //if (c['from_display_name'].search('emojione') != -1) {
       //  var $from_display_name = $('<div>' + c['from_display_name'] + '</div>');
       //  if (-1 != $from_display_name.html().search('&lt;')) {
@@ -458,7 +460,7 @@
         '<li id="inner'+c['id']+'" chatId="'+c['from_id']+'">'+
         ' <div class="message-data">'+
         '   <div class="image-cropper">'+
-        '     <img class="profile-pic" src="data:image/png;base64,'+c['icon_base64']+'" alt="avatar" />'+
+        '     <img class="profile-pic" style="'+hide_image_style+'" src="data:image/png;base64,'+c['icon_base64']+'" alt="avatar" />'+
         '   </div>'+
         '   <span class="message-data-name"><!--<i class="fa fa-circle online"></i>-->'+c['from_display_name']+'</span>'+
         '   <span class="message-data-time" data-toggle="tooltip" data-placement="top" title="" data-original-title="'+t+'">'+c['t']+'</span>'+

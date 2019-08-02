@@ -53,10 +53,17 @@
       $.get(url, function(){
       }).done(function(msgs) {
         msg = JSON.parse(msgs);
+        var $a_chat_link = $this.closest('tr').find('.chat_link');
+        var $name = $a_chat_link.find('.name');
+        var $avatar = $a_chat_link.find('.profile-pic');
+
+        if (msg.status >= 7) {
+          $name.show();
+          $avatar.show();
+        }
+
         if (msg.status != 8) {
           $this.closest('td').addClass('loading-mask').find('span').first().html(msg.info);
-          var $a_chat_link = $this.closest('tr').find('.chat_link');
-          var $name = $a_chat_link.find('.name');
           $name.data('me_id', msg.me_id);
           $name.html(msg.user_name);
           $a_chat_link.find('img').attr('src', 'data:image/png;base64,' + msg.icon_base64);
@@ -84,6 +91,7 @@
               e.preventDefault();
             });
           }
+
         }
         else {
           $this.closest('td').removeClass('loading-mask').find('span').first().remove();

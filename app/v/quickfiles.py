@@ -24,6 +24,8 @@ from flask_appbuilder.models.filters import Filters
 from flask_appbuilder.baseviews import BaseCRUDView
 import json
 import time
+import platform
+from subprocess import check_output
 
 import logging
 log = logging.getLogger(__name__)
@@ -374,6 +376,34 @@ def get_line_id_by_current_user(s):
 
     return line_id
 
+import threading
+def processLine(cmd):
+    print("cmd is ", cmd)
+    time.sleep(5)
+    msg = check_output(cmd, shell=True).decode()
+    #msg = check_output("%s --app chrome-extension://%s/index.html#popou" % (pythin_bin, json['rid']), shell=True).decode()
+    print("reload2:msg:", msg)
+
+
+def do_reload(name):
+    s = platform.system()
+    if s == "Windows":
+        pythin_bin = "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+    elif s == "Darwin":
+        pythin_bin = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
+    cmd = '"%s" --app chrome-extension://%s/index.html#popou' % (pythin_bin, name)
+    #print("reload", json, cmd);
+    #msg = check_output(cmd, shell=True).decode()
+    #print("reload", msg);
+    processThread = threading.Thread(target=processLine, args=(cmd,));
+    processThread.start();
+    #time.sleep(5)
+    #msg = check_output(cmd, shell=True).decode()
+    ##msg = check_output("%s --app chrome-extension://%s/index.html#popou" % (pythin_bin, json['rid']), shell=True).decode()
+    #print("reload:msg:", msg)
+    print("reload:msg:", msg)
+
+
 def resp(json):
     print('received my event: ' + str(json) + json['action'])
     if json['action'] == "heartbeat":
@@ -418,6 +448,28 @@ def resp(json):
         item = item[0]
         print("current status is ", item.status)
         socketio.emit('message', {'action': 'resp_status', 'p': item.status}, namespace='/canary', room=item.name)
+        if item.status == -2 and json['p'].get('is_ongoing', False):
+            do_reload(json['rid'])
+
+    elif json['action'] == "reload":
+        do_reload(json['rid'])
+        #s = platform.system()
+        #if s == "Windows":
+        #    pythin_bin = "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+        #elif s == "Darwin":
+        #    pythin_bin = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
+        #cmd = '"%s" --app chrome-extension://%s/index.html#popou' % (pythin_bin, json['rid'])
+        ##print("reload", json, cmd);
+        ##msg = check_output(cmd, shell=True).decode()
+        ##print("reload", msg);
+        #processThread = threading.Thread(target=processLine, args=(cmd,));
+        #processThread.start();
+        ##time.sleep(5)
+        ##msg = check_output(cmd, shell=True).decode()
+        ###msg = check_output("%s --app chrome-extension://%s/index.html#popou" % (pythin_bin, json['rid']), shell=True).decode()
+        ##print("reload:msg:", msg)
+        #print("reload:msg:", msg)
+        socketio.emit('message', {'action': 'resp_status', 'p': 0}, namespace='/canary', room=json['rid'])
 
 
 socketio.on_event('resp', resp, namespace='/canary')
@@ -689,10 +741,12 @@ class LineFuncuntionView(ModelView, ModelRestApi):
             filters.add_filter('name', FilterEqual, name)
             count, item = _datamodel.query(filters=filters)
             for i in item:
-                #global g
                 #g['is_logout'][name] = -2
                 i.status = -2
                 _datamodel.add(i)
+
+                global g
+                g['status'][i.me_id][name]['status'] = -1
 
             #return redirect(self.route_base)
 

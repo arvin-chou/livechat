@@ -19,7 +19,7 @@
               <li class="clearfix" data-id="{{ item['id'] }}" data-line_id="{{ item['line_id'] }}">
                 <!--<img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01.jpg" alt="avatar" />-->
                 <div class="image-cropper">
-                  <img class="profile-pic" src="data:image/png;base64,{{item['icon_base64']}}" alt="avatar" />
+                  <img class="profile-pic" style="{% if item['icon_base64'] %} {%else%} display:none;{% endif %}" src="data:image/png;base64,{{item['icon_base64']}}" alt="avatar" />
                 </div>
                 <div class="about">
                   <div class="name">

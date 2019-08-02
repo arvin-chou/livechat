@@ -77,11 +77,11 @@ class ProjectFiles(Model):
             s = """ 
                 <div class="list clearfix">
                     <div class="image-cropper">
-                      <img class="profile-pic" src="data:image/png;base64,%s" alt="avatar" />
+                      <img style="display:none;" class="profile-pic" src="data:image/png;base64,%s" alt="avatar" />
                     </div>
                     <div class="clearfix"></div>
                     <div class="about">
-                      <div class="name" data-me_id="%s" data-name="%s">%s</div>
+                      <div style="display:none;" class="name" data-me_id="%s" data-name="%s">%s</div>
                       <div class="status"></div>
                     </div>
                   </div>
