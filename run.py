@@ -1,10 +1,10 @@
-from app import app, db, socketio, IS_DEBUG
+from app import db, socketio, IS_DEBUG
+from app import app
 import time
 from threading import Thread
 from flask import Flask, render_template, session, request
 from flask_socketio import join_room, leave_room
 from app.v.quickfiles import line_background_stuff
-
 
 @socketio.on('join', namespace='/canary')
 def on_join(json, methods=['GET', 'POST']):
@@ -12,6 +12,11 @@ def on_join(json, methods=['GET', 'POST']):
     room = json['room']
     join_room(room)
     print('join room', json)
+    #send(username + ' has entered the room.', room=room)
+
+@socketio.on('disconnect', namespace='/canary')
+def socket_disconnect():
+    print('socket disconnect')
     #send(username + ' has entered the room.', room=room)
 
 @socketio.on('leave')
@@ -67,12 +72,21 @@ thread = None
 #    socketio.emit('my response', json, callback=messageReceived)
 
 
+#def socketio_stuff():
+#    socketio.run(app, debug=IS_DEBUG)
+#
 #if thread is None:
-#    thread = Thread(target=line_background_stuff)
+#    thread = Thread(target=socketio_stuff)
 #    thread.start()
 #socketio.run(app, host='0.0.0.0', port=8000,  threaded=True)
 #socketio.run(app, host='0.0.0.0', port=8080, debug=IS_DEBUG)
+def create_app():
+    return socketio
+
 if IS_DEBUG:
     app.run(host="0.0.0.0", port=8080, debug=IS_DEBUG)
 else:
-    socketio.run(app, host='0.0.0.0', port=8080, debug=IS_DEBUG)
+    #socketio.run(app, host='0.0.0.0', port=8080, debug=IS_DEBUG)
+    #socketio.run(app)
+    #app.run()
+    pass
