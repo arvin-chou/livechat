@@ -10,6 +10,8 @@ from flask import (
     url_for
 )
 import datetime
+import time
+
 
 from werkzeug.utils import secure_filename
 
@@ -70,16 +72,21 @@ class ContactModelApi(ModelRestApi):
             return self.response_400(message="Request payload is not JSON")
         action = request.json.get('action', 'add_chats')
 
+        r = self.response_400(message="not support")
+        t0 = time.time()
         if action == "add_chats":
-            return self.add_chats()
+            r = self.add_chats()
         elif action == "update_group":
-            return self.update_group()
+            r = self.update_group()
         elif action == "update_user":
-            return self.update_user()
+            r = self.update_user()
         elif action == "update_friend_icon":
-            return self.update_friend_icon()
+            r = self.update_friend_icon()
 
-        return self.response_400(message="not support")
+        print("[" +action + "] SqlAlchemy: Total time records " + str(time.time() - t0) + " secs")
+
+
+        return r
 
     def add_chats(self):
         ## post with json
@@ -165,13 +172,23 @@ class ContactModelApi(ModelRestApi):
                 _datamodel.session = s
                 filters = _datamodel.get_filters()
                 filters.add_filter('updated', FilterEqual, datetime.datetime.fromtimestamp(int(c['time']) / 1000))
-                filters.add_filter('contact_group_id', FilterEqual, id)
-                filters.add_filter('line_id', FilterEqual, cs['id']) # to
-                filters.add_filter('from_id', FilterEqual, c['from'])
-                filters.add_filter('me_id', FilterEqual, cs['me_id']) # could remove?
-                count, item = _datamodel.query(filters=filters, page_size=0)
+                #filters.add_filter('contact_group_id', FilterEqual, id)
+                #filters.add_filter('line_id', FilterEqual, cs['id']) # to
+                #filters.add_filter('from_id', FilterEqual, c['from'])
+                #filters.add_filter('me_id', FilterEqual, cs['me_id']) # could remove?
+                #count, item = _datamodel.query(filters=filters, page_size=0)
+                item = _datamodel._get_base_query(s.query(_datamodel.obj), filters=filters).first()
+                is_found = False
+                if item:
+                    item = [item]
+                #if len(item) > 0:
+                #    for i in item:
+                #        if i.contact_group_id == id and i.line_id == cs['id'] and i.from_id == c['from'] and i.me_id == cs['me_id']:
+                #            is_found = True
+                #            item[0] = i
+                #            break
 
-                if count > 0:
+                if is_found:
                     # update 
                     is_dirty = False
                     item = item[0]

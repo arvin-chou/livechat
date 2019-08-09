@@ -389,9 +389,10 @@ def do_reload(name):
     s = platform.system()
     if s == "Windows":
         pythin_bin = "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+        cmd = '"%s" --app chrome-extension://%s/index.html#popou' % (pythin_bin, name)
     elif s == "Darwin":
         pythin_bin = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
-    cmd = '"%s" --app chrome-extension://%s/index.html#popou' % (pythin_bin, name)
+        cmd = '%s --app chrome-extension://%s/index.html#popou' % (pythin_bin, name)
     #print("reload", json, cmd);
     #msg = check_output(cmd, shell=True).decode()
     #print("reload", msg);
@@ -401,11 +402,11 @@ def do_reload(name):
     #msg = check_output(cmd, shell=True).decode()
     ##msg = check_output("%s --app chrome-extension://%s/index.html#popou" % (pythin_bin, json['rid']), shell=True).decode()
     #print("reload:msg:", msg)
-    print("reload:msg:", msg)
+    print("cmd:", cmd)
 
 
 def resp(json):
-    print('received my event: ' + str(json) + json['action'])
+    print('== received from js [%s] %s' % (json['action'], str(json)))
     if json['action'] == "heartbeat":
         #print('received my event: ' + str(json) + json['action'])
         _datamodel = SQLAInterface(ProjectFiles, db.session)
@@ -416,6 +417,7 @@ def resp(json):
         item.status = json['p']['is_alive']
         _datamodel.add(item)
         if item.status is 1:
+            print('emit add friend %s from %s' % (item.description, item.name)) 
             socketio.emit('message', {'action': 'add_friend', 'p': item.description}, namespace='/canary', room=item.name)
 
     elif json['action'] == "sync_status":
@@ -446,7 +448,7 @@ def resp(json):
         filters.add_filter('name', FilterEqual, json['rid'])
         count, item = _datamodel.query(filters=filters, order_column='id', order_direction='desc', page_size=-1)
         item = item[0]
-        print("current status is ", item.status)
+        print("=== current status is %s ===" % (item.status))
         socketio.emit('message', {'action': 'resp_status', 'p': item.status}, namespace='/canary', room=item.name)
         if item.status == -2 and json['p'].get('is_ongoing', False):
             do_reload(json['rid'])

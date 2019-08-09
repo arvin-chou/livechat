@@ -14,55 +14,70 @@ SECRET_KEY = "\2\1kDA-VKhY6y@C6-UT\1\2\e\y\y\h"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(basedir, "app.db")
+#SQLALCHEMY_ECHO = True
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+from sqlalchemy.pool import QueuePool, SingletonThreadPool
+
+#_setdefault('pool_size', 'SQLALCHEMY_POOL_SIZE')
+#_setdefault('pool_timeout', 'SQLALCHEMY_POOL_TIMEOUT')
+#_setdefault('pool_recycle', 'SQLALCHEMY_POOL_RECYCLE')
+#_setdefault('max_overflow', 'SQLALCHEMY_MAX_OVERFLOW')
+#SQLALCHEMY_POOL_SIZE = 100
+#SQLALCHEMY_ENGINE_OPTIONS = {
+#        'poolclass': SingletonThreadPool,
+#        'pool_size' : 100,
+#        'pool_recycle':120,
+#        'pool_pre_ping': True
+#        }
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
-from sqlalchemy import create_engine
-from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey, DateTime
-from sqlalchemy.dialects.mysql import LONGTEXT
-
-engine = create_engine(SQLALCHEMY_DATABASE_URI)
-
-def add_column(engine, table_name, column):
-    column_name = column.compile(dialect=engine.dialect)
-    column_type = column.type.compile(engine.dialect)
-    engine.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type))
-def del_column(engine, table_name, column):
-    column_name = column.compile(dialect=engine.dialect)
-    column_type = column.type.compile(engine.dialect)
-    engine.execute('ALTER TABLE %s DROP COLUMN %s ' % (table_name, column_name))
-
-
-
-#column = Column('updated', DateTime)
-#column= Column('c_type', Integer)
-#column= Column('line_id', String)
-#column= Column('msg', LONGTEXT)
-#column= Column('login_qrcode_base64', String)
-#column= Column('user_name', String)
-#add_column(engine, 'project_files', column)
-#column= Column('me_id', String)
-#add_column(engine, 'contact_group', column)
-#add_column(engine, 'project_files', column)
-#column= Column('icon_base64', String)
-#add_column(engine, 'project_files', column)
-
-#del_column(engine, 'project', column)
-#column= Column('icon_base64', String)
-#add_column(engine, 'contact', column)
-#column= Column('contactgroup_id', Integer)
-#add_column(engine, 'project', column)
-#column= Column('is_visible', Integer)
-#add_column(engine, 'contact_group', column)
-#column= Column('updated', DateTime)
-#add_column(engine, 'linefriend', column)
-#engine.execute('update contact_group set user_id = 4')
-#engine.execute('update contact set user_id = 4')
-#Contact.__table__.drop(engine)
-#Contact.__table__.drop(engine)
-#ContactGroup.__table__.drop(engine)
-#from app.m.quickfiles import Project, ProjectFiles, LindFriend
-#ProjectFiles.__table__.drop(engine)
-#LindFriend.__table__.drop(engine)
+#from sqlalchemy import create_engine
+#from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey, DateTime
+#from sqlalchemy.dialects.mysql import LONGTEXT
+#
+#engine = create_engine(SQLALCHEMY_DATABASE_URI)
+#
+#def add_column(engine, table_name, column):
+#    column_name = column.compile(dialect=engine.dialect)
+#    column_type = column.type.compile(engine.dialect)
+#    engine.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type))
+#def del_column(engine, table_name, column):
+#    column_name = column.compile(dialect=engine.dialect)
+#    column_type = column.type.compile(engine.dialect)
+#    engine.execute('ALTER TABLE %s DROP COLUMN %s ' % (table_name, column_name))
+#
+#
+#
+##column = Column('updated', DateTime)
+##column= Column('c_type', Integer)
+##column= Column('line_id', String)
+##column= Column('msg', LONGTEXT)
+##column= Column('login_qrcode_base64', String)
+##column= Column('user_name', String)
+##add_column(engine, 'project_files', column)
+##column= Column('me_id', String)
+##add_column(engine, 'contact_group', column)
+##add_column(engine, 'project_files', column)
+##column= Column('icon_base64', String)
+##add_column(engine, 'project_files', column)
+#
+##del_column(engine, 'project', column)
+##column= Column('icon_base64', String)
+##add_column(engine, 'contact', column)
+##column= Column('contactgroup_id', Integer)
+##add_column(engine, 'project', column)
+##column= Column('is_visible', Integer)
+##add_column(engine, 'contact_group', column)
+##column= Column('updated', DateTime)
+##add_column(engine, 'linefriend', column)
+##engine.execute('update contact_group set user_id = 4')
+##engine.execute('update contact set user_id = 4')
+##Contact.__table__.drop(engine)
+##Contact.__table__.drop(engine)
+##ContactGroup.__table__.drop(engine)
+##from app.m.quickfiles import Project, ProjectFiles, LindFriend
+##ProjectFiles.__table__.drop(engine)
+##LindFriend.__table__.drop(engine)
 
 
 # Flask-WTF flag for CSRF

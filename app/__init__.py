@@ -1,8 +1,10 @@
 import logging
+import os
 
 from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_socketio import SocketIO
+from werkzeug.contrib.profiler import ProfilerMiddleware
 
 from gevent import monkey
 monkey.patch_all()
@@ -30,11 +32,22 @@ else:
 
 app = Flask(__name__)
 app.config.from_object("config")
+profile_dir = os.path.join(os.getcwd(), 'pstat_files')
+
+try:
+    os.makedirs(profile_dir)
+except FileExistsError:
+    pass
+
+#app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir=profile_dir)
+
+
 db = SQLA(app)
 #appbuilder = AppBuilder(app, db.session, indexview='ShowProjectFilesByUser')
 appbuilder = AppBuilder(app, db.session)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = False;
-socketio = SocketIO(app, manage_session=False, engineio_logger=False, async_handlers=True)
+socketio = SocketIO(app, ping_timeout=240, ping_interval=60, async_mode='gevent', manage_session=False, engineio_logger=True, async_handlers=True)
+#socketio = SocketIO(app, manage_session=False, engineio_logger=False, async_handlers=True)
 #socketio = SocketIO(app, manage_session=False)
 
 

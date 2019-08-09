@@ -16,7 +16,7 @@ def on_join(json, methods=['GET', 'POST']):
 
 @socketio.on('disconnect', namespace='/canary')
 def socket_disconnect():
-    print('socket disconnect')
+    print('======== socket disconnect ========')
     #send(username + ' has entered the room.', room=room)
 
 @socketio.on('leave')
@@ -86,7 +86,7 @@ def create_app():
 if IS_DEBUG:
     app.run(host="0.0.0.0", port=8080, debug=IS_DEBUG)
 else:
-    #socketio.run(app, host='0.0.0.0', port=8080, debug=IS_DEBUG)
+    socketio.run(app, host='0.0.0.0', port=8080, debug=IS_DEBUG)
     #socketio.run(app)
     #app.run()
     pass
