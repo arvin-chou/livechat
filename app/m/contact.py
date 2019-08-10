@@ -3,6 +3,8 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship, backref
+from sqlalchemy.schema import UniqueConstraint
+
 #from app.m.quickfiles import ProjectFiles
 
 class ContactGroup(Model):
@@ -38,6 +40,8 @@ class Contact(Model):
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     user = relationship("User", foreign_keys='Contact.user_id')
     c_type = Column(Integer, default=1) # content type as 1 is chat 2 is sticker
+    UniqueConstraint('updated', 'contact_group_id', 'line_id', 'from_id', 'me_id', name='uniq_for_add')
+
 
     #contact_group_id = Column(Integer)
     #contact_group_id = Column(Integer, ForeignKey('contact_group.id'))

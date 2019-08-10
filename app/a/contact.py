@@ -22,14 +22,26 @@ from flask_appbuilder.api import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.filemanager import ImageManager
 from flask_appbuilder.models.sqla.filters import FilterEqual 
+
 from flask_login import current_user
 from app import appbuilder, db
 from app.m.contact import Contact, ContactGroup
 from app.m.quickfiles import Project, ProjectFiles
 from app.v.contact import ContactModelView, ContactGroupModelView
 
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.expression import Insert
+
 import logging
 log = logging.getLogger(__name__)
+
+@compiles(Insert)
+def replace_string(insert, compiler, **kw):
+    s = compiler.visit_insert(insert, **kw)
+    s = s.replace("INSERT INTO", "REPLACE INTO")
+    print("s is %s" % (s))
+    return s
 
 class ContactModelApi(ModelRestApi):
     #projectmodelview = ProjectModelView()
@@ -135,6 +147,7 @@ class ContactModelApi(ModelRestApi):
 
         uid = item[0].project.user_id
 
+        need_commit = 0
         for cs in chats:
             if cs.get('id', None) is None:
                 log.warning('id not found, current is', cs)
@@ -147,7 +160,11 @@ class ContactModelApi(ModelRestApi):
             filters.add_filter('projectfiles_name', FilterEqual, rid)
             filters.add_filter('me_id', FilterEqual, cs['me_id'])
             filters.add_filter('user_id', FilterEqual, uid)
+            #count = 0
             count, item = _datamodel.query(filters=filters, page_size=0)
+            #item = _datamodel._get_base_query(s.query(_datamodel.obj), filters=filters).first()
+            #if item:
+            #    item = [item]
 
             id = -1;
             if count:
@@ -172,21 +189,30 @@ class ContactModelApi(ModelRestApi):
                 _datamodel.session = s
                 filters = _datamodel.get_filters()
                 filters.add_filter('updated', FilterEqual, datetime.datetime.fromtimestamp(int(c['time']) / 1000))
-                #filters.add_filter('contact_group_id', FilterEqual, id)
-                #filters.add_filter('line_id', FilterEqual, cs['id']) # to
-                #filters.add_filter('from_id', FilterEqual, c['from'])
-                #filters.add_filter('me_id', FilterEqual, cs['me_id']) # could remove?
+                filters.add_filter('contact_group_id', FilterEqual, id)
+                filters.add_filter('line_id', FilterEqual, cs['id']) # to
+                filters.add_filter('from_id', FilterEqual, c['from'])
+                filters.add_filter('me_id', FilterEqual, cs['me_id']) # could remove?
                 #count, item = _datamodel.query(filters=filters, page_size=0)
-                item = _datamodel._get_base_query(s.query(_datamodel.obj), filters=filters).first()
+                #item = _datamodel._get_base_query(s.query(_datamodel.obj), filters=filters).first()
+                item = None
                 is_found = False
-                if item:
-                    item = [item]
-                #if len(item) > 0:
-                #    for i in item:
-                #        if i.contact_group_id == id and i.line_id == cs['id'] and i.from_id == c['from'] and i.me_id == cs['me_id']:
-                #            is_found = True
-                #            item[0] = i
-                #            break
+
+                if c['from_display_name'] == "" or c['icon_base64'] == "":
+                    print("no diaplay name and icon base")
+                    #print("no diaplay name and icon base", str(c))
+                    continue
+
+                #item = _datamodel._get_base_query(s.query(_datamodel.obj), filters=filters).limit(1).first()
+                #if item:
+                #    item = [item]
+                #    is_found = True
+                ##if len(item) > 0:
+                ##    for i in item:
+                ##        if i.contact_group_id == id and i.line_id == cs['id'] and i.from_id == c['from'] and i.me_id == cs['me_id']:
+                ##            is_found = True
+                ##            item[0] = i
+                ##            break
 
                 if is_found:
                     # update 
@@ -201,6 +227,7 @@ class ContactModelApi(ModelRestApi):
                         is_dirty = True
 
                     if is_dirty:
+                        need_commit += 1
                         s.add(item)
 
                 else:
@@ -228,6 +255,7 @@ class ContactModelApi(ModelRestApi):
                     item.icon_base64 = c['icon_base64']
                     item.c_type= c.get('type', 1)
 
+                    need_commit += 1
                     s.add(item)
 
             if is_updated:
@@ -235,6 +263,9 @@ class ContactModelApi(ModelRestApi):
                     group.updated = latest_update 
                     s.add(group)
 
+
+        if need_commit is 0:
+            return self.response(200, message="no one update")
 
         message = "warning"
         try:
