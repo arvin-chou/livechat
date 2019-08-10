@@ -279,6 +279,7 @@
         $('.modal-text').text("{{_("are you sure to logout?")}}");
         $('#modal-confirm').modal('show');
         $('#modal-confirm-ok').off().on('click', function(e) {
+          $('#modal-confirm .modal-content').addClass('loading-mask');
           var logout_url = $target.attr('href');
           $.ajax({
             type: "POST",

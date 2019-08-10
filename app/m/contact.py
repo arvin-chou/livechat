@@ -3,7 +3,7 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.schema import UniqueConstraint, Index
 
 #from app.m.quickfiles import ProjectFiles
 
@@ -30,17 +30,21 @@ class ContactGroup(Model):
 
 class Contact(Model):
     __tablename__ = "contact"
-    id = Column(Integer, primary_key=True)
-    line_id = Column(String) # to
+    #id = Column(Integer, primary_key=True)
+    id = Column(Integer)
+    line_id = Column(String, primary_key=True) # to
     name = Column(String, unique=False, nullable=False) #rid
     msg = Column(String, unique=False, nullable=False)
-    from_id = Column(String, unique=False)
+    from_id = Column(String, primary_key=True)
     from_display_name = Column(String, unique=False)
-    me_id = Column(String, unique=False)
+    me_id = Column(String, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     user = relationship("User", foreign_keys='Contact.user_id')
     c_type = Column(Integer, default=1) # content type as 1 is chat 2 is sticker
-    UniqueConstraint('updated', 'contact_group_id', 'line_id', 'from_id', 'me_id', name='uniq_for_add')
+    __table_args__ = (
+        UniqueConstraint('updated', 'contact_group_id', 'line_id', 'from_id', 'me_id', name='uniq_for_add'),
+        Index('index_for_add', 'updated', 'contact_group_id', 'line_id', 'from_id', 'me_id'),
+    )
 
 
     #contact_group_id = Column(Integer)
@@ -51,14 +55,14 @@ class Contact(Model):
     @declared_attr
     def contact_group_id(self):
         return Column(
-                Integer, ForeignKey('contact_group.id')
+                Integer, ForeignKey('contact_group.id'), primary_key=True
         )
 
     @declared_attr
     def contact_group(self):
         return relationship("ContactGroup", backref=backref("Contact", cascade="all, delete-orphan"))
 
-    updated = Column(DateTime)
+    updated = Column(DateTime, primary_key=True)
     t = Column(String)
 
     def __repr__(self):

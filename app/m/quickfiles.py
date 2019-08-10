@@ -14,7 +14,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.filemanager import get_file_original_name
 from app.m.contact import ContactGroup
 
-from pyzbar.pyzbar import decode
+#from pyzbar.pyzbar import decode
 from PIL import Image
 import qrcode
 import os.path as op
