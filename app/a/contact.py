@@ -28,6 +28,7 @@ from app import appbuilder, db
 from app.m.contact import Contact, ContactGroup
 from app.m.quickfiles import Project, ProjectFiles
 from app.v.contact import ContactModelView, ContactGroupModelView
+from app.v.quickfiles import g, resp_heartbeat, sync_status
 
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.compiler import compiles
@@ -94,6 +95,8 @@ class ContactModelApi(ModelRestApi):
             r = self.update_user()
         elif action == "update_friend_icon":
             r = self.update_friend_icon()
+        if action == "socket_emit":
+            r = self.socket_emit()
 
         print("[" +action + "] SqlAlchemy: Total time records " + str(time.time() - t0) + " secs")
 
@@ -491,6 +494,45 @@ class ContactModelApi(ModelRestApi):
             s.rollback()
             if raise_exception:
                 raise e
+
+        return self.response(200, message=message)
+
+    def socket_emit(self):
+        ## post with json
+        #{
+        #  "len":7,
+        #  "rid": xx,
+        #  action: 'socket_emit',
+        #  socket_emit: {
+        #    action: 'heartbeat',
+        #    rid: rid,
+        #    p: {
+        #      is_alive: is_alive
+        #    }
+        #  }
+        if not request.is_json:
+            return self.response_400(message="Request payload is not JSON")
+
+        rid = request.json.get('rid', None)
+        message = ""
+
+        if not rid:
+            return self.response_400(message="Missing required parameter")
+
+        socket_emit = request.json.get('socket_emit', None)
+
+        if socket_emit:
+            action = socket_emit.get('action', None)
+            p = socket_emit.get('p', {})
+            if action == 'heartbeat':
+                is_alive = p.get('is_alive', 0)
+                friend_id = resp_heartbeat(rid, is_alive, False)
+                message = {'action' : action, 'p': friend_id}
+            elif action == 'sync_status':
+                me_id = socket_emit.get('me_id', -1)
+                status = p.get('status', '')
+                info = p.get('info', '')
+                sync_status(me_id, rid, status, info)
 
         return self.response(200, message=message)
 

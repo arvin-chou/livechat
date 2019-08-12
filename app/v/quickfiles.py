@@ -389,6 +389,10 @@ def do_reload(name):
     s = platform.system()
     if s == "Windows":
         pythin_bin = "\"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe\""
+        pythin_bin = "\"C:\\Users\\Administrator\\Downloads\\ChromiumPortable\\App\\Chromium\\64\\chrome.exe\""
+        pythin_bin = "\"C:\\Users\\Administrator\\Downloads\\GoogleChromePortable\\GoogleChromePortable.exe\""
+
+
     elif s == "Darwin":
         pythin_bin = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 
@@ -404,36 +408,86 @@ def do_reload(name):
     #print("reload:msg:", msg)
     print("cmd:", cmd)
 
+def resp_heartbeat(rid, is_alive, is_socket_emit = True):
+    global g
+    #print('received my event: ' + str(json) + json['action'])
+    _datamodel = SQLAInterface(ProjectFiles, db.session)
+    filters = _datamodel.get_filters()
+    filters.add_filter('name', FilterEqual, rid)
+    count, item = _datamodel.query(filters=filters, order_column='id', order_direction='desc', page_size=-1)
+    item = item[0]
+    item.status = is_alive
+    _datamodel.add(item)
+
+    try:
+        db.session.commit()
+    except IntegrityError as e:
+        db.session.rollback()
+        if raise_exception:
+            raise e
+    except Exception as e:
+        db.session.rollback()
+        if raise_exception:
+            raise e
+
+    if item.status is 1:
+        g['is_logout'][rid] = 0
+
+        if is_socket_emit:
+            print('emit add friend %s from %s' % (item.description, item.name)) 
+            socketio.emit('message', {'action': 'add_friend', 'p': item.description}, namespace='/canary', room=item.name)
+        else:
+            return item.description
+
+    return ""
+
+def sync_status(me_id, rid, status, info):
+    global g
+    if me_id not in g['status']:
+        g['status'][me_id] = {}
+
+    if me_id in g['status'] and rid != -1:
+        g['status'][me_id][rid] = {}
+        g['status'][me_id][rid]['status'] = status
+        g['status'][me_id][rid]['info'] = info
+
 
 def resp(json):
     global g
     print('== received from js [%s] %s' % (json['action'], str(json)))
     if json['action'] == "heartbeat":
-        #print('received my event: ' + str(json) + json['action'])
-        _datamodel = SQLAInterface(ProjectFiles, db.session)
-        filters = _datamodel.get_filters()
         rid = json['rid']
-        filters.add_filter('name', FilterEqual, json['rid'])
-        count, item = _datamodel.query(filters=filters, order_column='id', order_direction='desc', page_size=-1)
-        item = item[0]
-        item.status = json['p']['is_alive']
-        _datamodel.add(item)
-        if item.status is 1:
-            g['is_logout'][rid] = 0
+        is_alive = json['p']['is_alive']
+        resp_heartbeat(rid, is_alive)
+        #print('received my event: ' + str(json) + json['action'])
+        #_datamodel = SQLAInterface(ProjectFiles, db.session)
+        #filters = _datamodel.get_filters()
+        #rid = json['rid']
+        #filters.add_filter('name', FilterEqual, json['rid'])
+        #count, item = _datamodel.query(filters=filters, order_column='id', order_direction='desc', page_size=-1)
+        #item = item[0]
+        #item.status = json['p']['is_alive']
+        #_datamodel.add(item)
+        #if item.status is 1:
+        #    g['is_logout'][rid] = 0
 
-            print('emit add friend %s from %s' % (item.description, item.name)) 
-            socketio.emit('message', {'action': 'add_friend', 'p': item.description}, namespace='/canary', room=item.name)
+        #    print('emit add friend %s from %s' % (item.description, item.name)) 
+        #    socketio.emit('message', {'action': 'add_friend', 'p': item.description}, namespace='/canary', room=item.name)
 
     elif json['action'] == "sync_status":
         me_id = json.get('me_id', -1)
         rid = json.get('rid', -1)
-        if me_id not in g['status']:
-            g['status'][me_id] = {}
+        status = json['p'].get('status', "")
+        info = json['p'].get('info', "")
+        sync_status(me_id, rid, status, info)
 
-        if me_id in g['status'] and rid != -1:
-            g['status'][me_id][rid] = {}
-            g['status'][me_id][rid]['status'] = json['p'].get('status', "")
-            g['status'][me_id][rid]['info'] = json['p'].get('info', "")
+        #if me_id not in g['status']:
+        #    g['status'][me_id] = {}
+
+        #if me_id in g['status'] and rid != -1:
+        #    g['status'][me_id][rid] = {}
+        #    g['status'][me_id][rid]['status'] = json['p'].get('status', "")
+        #    g['status'][me_id][rid]['info'] = json['p'].get('info', "")
 
         #if json['p'].get('status', "") == -2:
         #    for i in g['status'].keys():
@@ -579,6 +633,14 @@ class LineFuncuntionView(ModelView, ModelRestApi):
         else:
             g['status'][me_id][name] = {}
 
+        # direct get me_id in global
+        # get new me_id by name
+        for m in g['status']:
+            if g['status'][m][name]:
+                me_id = m
+                break
+
+
         s = self.datamodel.session
         _datamodel = SQLAInterface(Project)
         _datamodel.session = s
@@ -586,13 +648,14 @@ class LineFuncuntionView(ModelView, ModelRestApi):
         filters.add_filter('user_id', FilterEqual, current_user.id)
         count, item = _datamodel.query(filters=filters, page_size=1)
         item = item[0]
+        
 
         for i in item.projectfiles:
             if i.name == name:
                 is_found = True
                 icon_base64 = i.icon_base64
                 user_name = i.user_name
-                me_id = i.me_id
+                #me_id = i.me_id
 
                 if me_id not in g['status']:
                     # change login
