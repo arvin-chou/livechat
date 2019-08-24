@@ -88,9 +88,10 @@ class ProjectFiles(Model):
               """ % (self.icon_base64, self.me_id, self.name, self.user_name)
 
         me_id = self.me_id if self.me_id is not None else ""
+        name = self.name if self.name is not None else ""
         return Markup(
-                '<a class="chat_link" data-me_id="'+me_id+'" data-name="'+self.name+'" href="'
-                + url_for("ContactGroupModelChatView.list", name=str(self.name),
+                '<a class="chat_link" data-me_id="'+me_id+'" data-name="'+name+'" href="'
+                + url_for("ContactGroupModelChatView.list", name=str(name),
                 me_id=str(me_id))
                 + '">' + s + '</a>'
                 )
